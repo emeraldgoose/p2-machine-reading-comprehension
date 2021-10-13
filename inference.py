@@ -139,6 +139,7 @@ def run_sparse_retrieval(
                 "question": Value(dtype="string", id=None),
             }
         )
+        datasets = DatasetDict({"validation": Dataset.from_pandas(df, features=f)})
 
     # train data 에 대해선 정답이 존재하므로 id question context answer 로 데이터셋이 구성됩니다.
     elif training_args.do_eval:
@@ -157,7 +158,8 @@ def run_sparse_retrieval(
                 "question": Value(dtype="string", id=None),
             }
         )
-    datasets = DatasetDict({"validation": Dataset.from_pandas(df, features=f)})
+        datasets = DatasetDict({"validation": Dataset.from_pandas(df, features=f)})
+
     return datasets
 
 
@@ -198,7 +200,7 @@ def run_mrc(
             stride=data_args.doc_stride,
             return_overflowing_tokens=True,
             return_offsets_mapping=True,
-            #return_token_type_ids=False, # roberta모델을 사용할 경우 False, bert를 사용할 경우 True로 표기해야합니다.
+            return_token_type_ids=False, # roberta모델을 사용할 경우 False, bert를 사용할 경우 True로 표기해야합니다.
             padding="max_length" if data_args.pad_to_max_length else False,
         )
 

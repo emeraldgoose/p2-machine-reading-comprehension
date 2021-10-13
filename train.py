@@ -109,6 +109,8 @@ def run_mrc(
     model,
 ) -> NoReturn:
 
+    training_args.num_train_epochs = 5
+
     # dataset을 전처리합니다.
     # training과 evaluation에서 사용되는 전처리는 아주 조금 다른 형태를 가집니다.
     if training_args.do_train:
@@ -141,7 +143,7 @@ def run_mrc(
             stride=data_args.doc_stride,
             return_overflowing_tokens=True,
             return_offsets_mapping=True,
-            #return_token_type_ids=False, # roberta모델을 사용할 경우 False, bert를 사용할 경우 True로 표기해야합니다.
+            return_token_type_ids=False, # roberta모델을 사용할 경우 False, bert를 사용할 경우 True로 표기해야합니다.
             padding="max_length" if data_args.pad_to_max_length else False,
         )
 
@@ -233,7 +235,7 @@ def run_mrc(
             stride=data_args.doc_stride,
             return_overflowing_tokens=True,
             return_offsets_mapping=True,
-            #return_token_type_ids=False, # roberta모델을 사용할 경우 False, bert를 사용할 경우 True로 표기해야합니다.
+            return_token_type_ids=False, # roberta모델을 사용할 경우 False, bert를 사용할 경우 True로 표기해야합니다.
             padding="max_length" if data_args.pad_to_max_length else False,
         )
 
@@ -311,7 +313,7 @@ def run_mrc(
         return metric.compute(predictions=p.predictions, references=p.label_ids)
 
     # Trainer 초기화
-    trainer = QuestionAnsweringTrainer(
+    trainer = QuestionAnsweringTrainer( 
         model=model,
         args=training_args,
         train_dataset=train_dataset if training_args.do_train else None,
