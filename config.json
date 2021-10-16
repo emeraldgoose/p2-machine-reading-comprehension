@@ -1,0 +1,22 @@
+{
+    "model_name" : "klue/bert-base",
+    "dataset_dir" : "../data/train_dataset",
+    "max_seq_length" : 384,
+    "pad_to_max_length" : "True",
+    "doc_stride" : 128,
+    "max_answer_length" : 84,
+    "preprocessing_num_workers" : 4,
+    "num_cluster" : 64,
+    "top_k" : 5,
+    "batch_size" : 8,
+    "gradient_accumulation_steps" : 1,
+    "learning_rate" : 5e-5,
+    "weight_decay" : 0.01,
+    "num_train_epochs" : 3,
+    "logging_steps" : 100,
+    "save_steps" : 100,
+    "save_total_limit" : 3,
+    "eval_steps" : 100,
+    "strategy" : "steps",
+    "load_best_model_at_end" : "True"
+}

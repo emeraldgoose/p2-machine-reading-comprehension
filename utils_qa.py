@@ -31,10 +31,7 @@ from transformers import is_torch_available, PreTrainedTokenizerFast, TrainingAr
 from transformers.trainer_utils import get_last_checkpoint
 
 from datasets import DatasetDict
-from arguments import (
-    ModelArguments,
-    DataTrainingArguments,
-)
+
 
 
 logger = logging.getLogger(__name__)
@@ -317,7 +314,7 @@ def postprocess_qa_predictions(
 
 
 def check_no_error(
-    data_args: DataTrainingArguments,
+    # data_args: DataTrainingArguments,
     training_args: TrainingArguments,
     datasets: DatasetDict,
     tokenizer,
