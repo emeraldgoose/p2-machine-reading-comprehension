@@ -1,0 +1,3 @@
+upload your name and link plz
+original_data  (https://aistages-prod-server-public.s3.amazonaws.com/app/Competitions/000077/data/data.tar.gz)
+ex)2125_00 (link)(설명)
