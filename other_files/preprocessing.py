@@ -117,4 +117,8 @@ class Preprocessor():
         if save_path is not None:
             pd.DataFrame(self.new_csv, columns = ["context", "question", "answers"]).to_csv(save_path)
 
+# how to run the code
+"""
 preprocessor = Preprocessor(csv_path)
+preprocessor.run("after_preprocessing_train.csv")
+"""
