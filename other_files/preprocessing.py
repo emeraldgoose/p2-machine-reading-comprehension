@@ -122,3 +122,46 @@ class Preprocessor():
 preprocessor = Preprocessor(csv_path)
 preprocessor.run("after_preprocessing_train.csv")
 """
+
+# Json_file preprocessor
+# wikipedia_documents.json 파일을 전처리하기 위한 클래스입니다.
+
+import json
+
+json_path = "/opt/ml/data/wikipedia_documents.json"
+
+class Preprocessor_json():
+
+    def __init__(self, json_path):
+
+        self.wiki = json.load(open(json_path, "r", encoding="utf-8"))
+        self.contexts = list(dict.fromkeys([v["text"] for v in self.wiki.values()]))
+
+    def _replace_one_record(self, idx):
+
+        context = re.sub("[“”‘’\"\']", "\'", self.contexts[idx])
+        context = re.sub("[〈<＜「≪《『]", "<", context)
+        context = re.sub("[〉>＞」≫》』]", ">", context)
+        context = re.sub("\\\\n|\\n| {2, }", " ", context)
+
+        #print(f"original :\n{self.contexts[idx]}")
+        #print(f"\n\nchanged :\n{context}")
+
+        return context
+
+    def run(self, save_path = None):
+        
+        for i in tqdm.tqdm(range(len(self.contexts))):
+            self.wiki[str(i)]["text"] = self._replace_one_record(i)
+        
+        print("preprocessing done!")
+
+        if save_path is not None:
+            with open(save_path, "w") as f:
+                json.dump(self.wiki, f) 
+
+# how to run
+"""
+j_processor = Preprocessor_json(json_path)
+j_processor.run("processed_wikipedia.json")
+"""
