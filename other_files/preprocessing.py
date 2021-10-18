@@ -36,7 +36,7 @@ class Preprocessor():
       다만 이 코드에서는 대체되는 글자와 대체하는 글자의 크기가 같기 때문에 별 의미는 없다고 생각합니다.
       
     _run_one_record:
-      하나의 record를 전처리합니다. "context", "question", "answer" 외의 정보는 불필요하다 판단하여 계산에서 제외합니다.
+      하나의 record를 전처리합니다. "context", "question", "answer", "document_id" 외의 정보는 불필요하다 판단하여 계산에서 제외합니다.
       
     run:
       데이터 셋 내의 모든 record를 전처리합니다.
@@ -82,6 +82,7 @@ class Preprocessor():
         question = self.df.iloc[idx].values[2]
         answers = self._answers_to_dictionary(self.df.iloc[idx].values[4])
         answer = answers["text"]
+        document_id = self.df.iloc[idx].values[5]
 
         # replace context
         start_idx = answers["answer_start"]
@@ -89,21 +90,20 @@ class Preprocessor():
         new_standard, context = self._replace_and_get_offset("[“”‘’\"\']", "\'", context, start_idx)
         new_standard, context = self._replace_and_get_offset("[〈<＜「≪《『]", "<", context, new_standard)
         new_standard, context = self._replace_and_get_offset("[〉>＞」≫》』]", ">", context, new_standard)
-        new_standard, context = self._replace_and_get_offset("\\\\n", " ", context, new_standard)
+        new_standard, context = self._replace_and_get_offset("\\\\n|\\n| {2, }", " ", context, new_standard)
 
         #replace word
 
         answer = self._replace_and_get_offset("[“”‘’\"\']", "\'", answer)
         answer = self._replace_and_get_offset("[〈<＜「≪《『]", "<", answer)
         answer = self._replace_and_get_offset("[〉>＞」≫》』]", ">", answer)
-        answer  = self._replace_and_get_offset("\\\\n", " ", answer)
+        answer  = self._replace_and_get_offset("\\\\n|\\n| {2, }", " ", answer)
 
         answers["answer_start"] = new_standard
         answers["text"] = answer
         answers["answer_end"] = new_standard + len(answer)
 
-
-        return [context, question, answers]
+        return [context, question, answers, document_id]
 
     def run(self, save_path = None):
 
@@ -115,7 +115,7 @@ class Preprocessor():
         print("preprocessing done!")
 
         if save_path is not None:
-            pd.DataFrame(self.new_csv, columns = ["context", "question", "answers"]).to_csv(save_path)
+            pd.DataFrame(self.new_csv, columns = ["context", "question", "answers","document_id"]).to_csv(save_path)
 
 # how to run the code
 """
