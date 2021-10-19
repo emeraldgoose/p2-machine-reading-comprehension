@@ -28,7 +28,8 @@ from arguments import (
     DataTrainingArguments,
 )
 
-from preprocessing import eval_preprocessor, train_preprocessor
+import tokenizerAndModel
+import make_dataset
 from postprocessing import postprocessor
 
 
@@ -56,9 +57,6 @@ def main() -> NoReturn:
 
     print(f"model is from {model_args.model_name_or_path}")
     print(f"data is from {data_args.dataset_name}")
-    print(f"models saved at {training_args.output_dir}")
-    print(f"overwrite_output_dir : {training_args.overwrite_output_dir}")
-    print(f"do_train : {training_args.do_train}")
 
     # logging 설정
     logging.basicConfig(
@@ -76,88 +74,24 @@ def main() -> NoReturn:
     datasets = load_from_disk(data_args.dataset_name)
     print(datasets)
 
-    # AutoConfig를 이용하여 pretrained model 과 tokenizer를 불러옵니다.
-    # argument로 원하는 모델 이름을 설정하면 옵션을 바꿀 수 있습니다.
-    config = AutoConfig.from_pretrained(
-        model_args.config_name
-        if model_args.config_name is not None
-        else model_args.model_name_or_path,
-    )
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_args.tokenizer_name
-        if model_args.tokenizer_name is not None
-        else model_args.model_name_or_path,
-        # 'use_fast' argument를 True로 설정할 경우 rust로 구현된 tokenizer를 사용할 수 있습니다.
-        # False로 설정할 경우 python으로 구현된 tokenizer를 사용할 수 있으며,
-        # rust version이 비교적 속도가 빠릅니다.
-        use_fast=True,
-    )
-    model = AutoModelForQuestionAnswering.from_pretrained(
-        model_args.model_name_or_path,
-        from_tf=bool(".ckpt" in model_args.model_name_or_path),
-        config=config,
-    )
-
-    # dataset을 전처리합니다.
-    # training과 evaluation에서 사용되는 전처리는 아주 조금 다른 형태를 가집니다.
-    if training_args.do_train:
-        column_names = datasets["train"].column_names
-    else:
-        column_names = datasets["validation"].column_names
-
-    question_column_name = "question" if "question" in column_names else column_names[0]
-    context_column_name = "context" if "context" in column_names else column_names[1]
-    answer_column_name = "answers" if "answers" in column_names else column_names[2]
-
-    # Padding에 대한 옵션을 설정합니다.
-    # (question|context) 혹은 (context|question)로 세팅 가능합니다.
-    pad_on_right = tokenizer.padding_side == "right"
+    tokenizer, model = tokenizerAndModel.init(model_args)
 
     # 오류가 있는지 확인합니다.
     last_checkpoint, max_seq_length = check_no_error(
         data_args, training_args, datasets, tokenizer
     )
 
+    # dataset을 전처리합니다.
+    # training과 evaluation에서 사용되는 전처리는 아주 조금 다른 형태를 가집니다.
     if training_args.do_train:
-        if "train" not in datasets:
-            raise ValueError("--do_trai장n requires a train dataset")
-        train_dataset = datasets["train"]
-
-        # dataset에서 train feature를 생성합니다.
-        train_dataset = train_dataset.map(
-            train_preprocessor(
-                tokenizer,
-                data_args,
-                max_seq_length,
-                pad_on_right,
-                question_column_name,
-                context_column_name,
-                answer_column_name,
-            ),
-            batched=True,
-            num_proc=data_args.preprocessing_num_workers,
-            remove_columns=column_names,
-            load_from_cache_file=not data_args.overwrite_cache,
+        column_names = datasets["train"].column_names
+        train_dataset = make_dataset.make_dataset(
+            training_args, data_args, datasets, tokenizer, max_seq_length, column_names
         )
-
-    if training_args.do_eval:
-        eval_dataset = datasets["validation"]
-
-        # Validation Feature 생성
-        eval_dataset = eval_dataset.map(
-            eval_preprocessor(
-                tokenizer,
-                data_args,
-                max_seq_length,
-                pad_on_right,
-                question_column_name,
-                context_column_name,
-                answer_column_name,
-            ),
-            batched=True,
-            num_proc=data_args.preprocessing_num_workers,
-            remove_columns=column_names,
-            load_from_cache_file=not data_args.overwrite_cache,
+    else:
+        column_names = datasets["validation"].column_names
+        eval_dataset = make_dataset.make_dataset(
+            training_args, data_args, datasets, tokenizer, max_seq_length, column_names
         )
 
     # Data collator
@@ -181,7 +115,7 @@ def main() -> NoReturn:
         eval_examples=datasets["validation"] if training_args.do_eval else None,
         tokenizer=tokenizer,
         data_collator=data_collator,
-        post_process_function=postprocessor(data_args, datasets, answer_column_name),
+        post_process_function=postprocessor(data_args, datasets, column_names),
         compute_metrics=compute_metrics,
     )
 

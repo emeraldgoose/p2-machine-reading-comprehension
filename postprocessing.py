@@ -2,7 +2,8 @@ from utils_qa import postprocess_qa_predictions
 from transformers import EvalPrediction
 
 
-def postprocessor(data_args, datasets, answer_column_name):
+def postprocessor(data_args, datasets, column_names):
+    answer_column_name = "answers" if "answers" in column_names else column_names[2]
     # Post-processing:
     def post_processing_function(examples, features, predictions, training_args):
         # Post-processing: start logits과 end logits을 original context의 정답과 match시킵니다.
