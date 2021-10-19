@@ -1,4 +1,28 @@
+import torch
+from torch.nn import GRU, Dropout
 from transformers import AutoConfig, AutoModelForQuestionAnswering, AutoTokenizer
+from transformers import BertModel, BertPreTrainedModel
+
+
+class customModel(BertPreTrainedModel):
+    def __init__(self, config, device):
+        super(customModel, self).__init__(config)
+        self.bert = BertModel(config)
+        self.out_feature = self.bert.pooler.dense.out_features
+        self.h0 = torch.randn(1, 1, self.in_feature, device=device)
+        self.gru1 = GRU(1, 1, self.out_feature, bidirectional=True)
+        self.gru2 = GRU(1, 1, self.out_feature, bidirectional=True)
+        self.drop = Dropout(0.1)
+
+    def forward(self, input):
+        print(input)
+
+        input_ids, attention_mask, return_type_ids = input
+        output = self.bert(input_ids, attention_mask, return_type_ids)
+
+        print(output.shape)
+
+        pass
 
 
 def init(model_args):

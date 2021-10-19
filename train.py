@@ -2,11 +2,8 @@ import logging
 import os
 import sys
 
-from typing import List, Callable, NoReturn, NewType, Any
 import dataclasses
 from datasets import load_metric, load_from_disk, Dataset, DatasetDict
-
-from transformers import AutoConfig, AutoModelForQuestionAnswering, AutoTokenizer
 
 from transformers import (
     DataCollatorWithPadding,
@@ -32,11 +29,13 @@ import tokenizerAndModel
 import make_dataset
 from postprocessing import postprocessor
 
+import wandb
+
 
 logger = logging.getLogger(__name__)
 
 
-def main() -> NoReturn:
+def main(config):
     # 가능한 arguments 들은 ./arguments.py 나 transformer package 안의 src/transformers/training_args.py 에서 확인 가능합니다.
     # --help flag 를 실행시켜서 확인할 수 도 있습니다.
 
@@ -48,12 +47,18 @@ def main() -> NoReturn:
     )
 
     # set training arguments
-    training_args.per_device_train_batch_size = 8
-    training_args.learning_rate = 5e-5
-    training_args.num_train_epochs = 1
-    training_args.weight_decay = 0.01
-    training_args.logging_steps = 100
-    training_args.save_total_limit = 5
+    training_args = TrainingArguments(
+        output_dir="./models/train_dataset/",
+        report_to="wandb",
+        do_train=True,
+        overwrite_output_dir=True,
+        per_device_eval_batch_size=config.batch_size,
+        learning_rate=config.learning_rate,
+        num_train_epochs=config.epochs,
+        weight_decay=config.weight_decay,
+        logging_steps=100,
+        save_total_limit=5,
+    )
 
     print(f"model is from {model_args.model_name_or_path}")
     print(f"data is from {data_args.dataset_name}")
@@ -162,5 +167,9 @@ def main() -> NoReturn:
 
 
 if __name__ == "__main__":
-
-    main()
+    hyperparamter = dict(
+        batch_size=8, learning_rate=1e-5, epochs=1, weight_decay=0.001,
+    )
+    wandb.init(config=hyperparamter)
+    config = wandb.config
+    main(config)
