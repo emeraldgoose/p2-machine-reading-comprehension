@@ -84,7 +84,7 @@ def prepare_train_features(examples):
 
 ```
 # 학습 예시 (train_dataset 사용)
-python train.py --output_dir ./models/train_dataset --do_train
+python train.py --output_dir ./models/train_dataset --do_train --overwrite_output_dir
 ```
 
 ### eval
@@ -93,7 +93,7 @@ MRC 모델의 평가는(`--do_eval`) 따로 설정해야 합니다.  위 학습 
 
 ```
 # mrc 모델 평가 (train_dataset 사용)
-python train.py --output_dir ./outputs/train_dataset --model_name_or_path ./models/train_dataset/ --do_eval 
+python train.py --output_dir ./outputs/train_dataset --model_name_or_path ./models/train_dataset/ --do_eval --overwrite_output_dir
 ```
 
 ### inference
