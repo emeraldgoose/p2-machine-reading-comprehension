@@ -1,4 +1,5 @@
 from transformers import AutoConfig, AutoModelForQuestionAnswering, AutoTokenizer
+from model import RobertaForQuestionAnswering, lstmOnRoberta
 
 
 def init(model_args):
@@ -18,9 +19,6 @@ def init(model_args):
         # rust version이 비교적 속도가 빠릅니다.
         use_fast=True,
     )
-    model = AutoModelForQuestionAnswering.from_pretrained(
-        model_args.model_name_or_path,
-        from_tf=bool(".ckpt" in model_args.model_name_or_path),
-        config=config,
-    )
+    model = lstmOnRoberta("klue/roberta-large", dropout=model_args.dropout)
+    # model = RobertaForQuestionAnswering(config)
     return tokenizer, model

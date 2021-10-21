@@ -9,7 +9,7 @@ class ModelArguments:
     """
 
     model_name_or_path: str = field(
-        default="klue/bert-base",
+        default="klue/roberta-large",
         metadata={
             "help": "Path to pretrained model or model identifier from huggingface.co/models"
         },
@@ -25,6 +25,9 @@ class ModelArguments:
         metadata={
             "help": "Pretrained tokenizer name or path if not the same as model_name"
         },
+    )
+    dropout: int = field(
+        default=0.1, metadata={"help": "lstmOnRoberta's LSTM layer dropout probability"}
     )
 
 
@@ -61,17 +64,18 @@ class DataTrainingArguments:
             "be faster on GPU but will be slower on TPU)."
         },
     )
-    doc_stride: int = field(
-        default=128,
-        metadata={
-            "help": "When splitting up a long document into chunks, how much stride to take between chunks."
-        },
-    )
     max_answer_length: int = field(
         default=30,
         metadata={
             "help": "The maximum length of an answer that can be generated. This is needed because the start "
             "and end predictions are not conditioned on one another."
+        },
+    )
+    # 아래부터 retriever 영역
+    doc_stride: int = field(
+        default=128,
+        metadata={
+            "help": "When splitting up a long document into chunks, how much stride to take between chunks."
         },
     )
     eval_retrieval: bool = field(
@@ -88,5 +92,5 @@ class DataTrainingArguments:
         },
     )
     use_faiss: bool = field(
-        default=False, metadata={"help": "Whether to build with faiss"}
+        default=True, metadata={"help": "Whether to build with faiss"}
     )
