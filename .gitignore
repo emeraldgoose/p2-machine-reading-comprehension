@@ -3,3 +3,5 @@ wandb
 __pycache__
 models
 output
+data/
+huggingface_datasets_upload.ipynb

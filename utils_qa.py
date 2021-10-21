@@ -32,7 +32,6 @@ from transformers.trainer_utils import get_last_checkpoint
 
 from datasets import DatasetDict
 from arguments import (
-    ModelArguments,
     DataTrainingArguments,
 )
 

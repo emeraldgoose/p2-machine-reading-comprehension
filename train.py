@@ -2,8 +2,7 @@ import logging
 import os
 import sys
 
-import dataclasses
-from datasets import load_metric, load_from_disk, Dataset, DatasetDict
+from datasets import load_metric, load_from_disk
 
 from transformers import (
     DataCollatorWithPadding,
@@ -13,12 +12,8 @@ from transformers import (
     set_seed,
 )
 
-from tokenizers import Tokenizer
-from tokenizers.models import WordPiece
-
-from utils_qa import postprocess_qa_predictions, check_no_error
+from utils_qa import check_no_error
 from trainer_qa import QuestionAnsweringTrainer
-from retrieval import SparseRetrieval
 
 from arguments import (
     ModelArguments,
@@ -50,6 +45,7 @@ def main(config):
     training_args = TrainingArguments(
         output_dir="./models/train_dataset/",
         report_to="wandb",
+        run_name="baseline",
         do_train=True,
         overwrite_output_dir=True,
         per_device_eval_batch_size=config.batch_size,
@@ -170,6 +166,12 @@ if __name__ == "__main__":
     hyperparamter = dict(
         batch_size=8, learning_rate=1e-5, epochs=1, weight_decay=0.001,
     )
-    wandb.init(config=hyperparamter)
+    wandb.init(config=hyperparamter,
+               project="mrc-level2-nlp-10",
+               entity="whiteboard",
+               name='baseline')
+    wandb.agent(entity='whiteboard',
+                project='mrc-level2-nlp-10',
+                sweep_id='n9y5ubav')
     config = wandb.config
     main(config)
