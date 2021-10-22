@@ -2,6 +2,6 @@ install
 wandb
 __pycache__
 models
-output
+outputs
 data/
 huggingface_datasets_upload.ipynb
