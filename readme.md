@@ -8,32 +8,36 @@ MRC dataset version control
 
 ## 설치 방법
 
-### 요구 사항
-
 ```
 # dvc
 pip install dvc
 ```
 
+
+
 ## 파일 구성
 
-
-### 저장소 구조
-
 ```
-  .dvc            # 전체 데이터
-  data.dvc        # 학습에 사용할 데이터셋. train 과 validation 으로 구성 
+.dvc            # 데이터 저장된 폴더
+data.dvc        # 데이터 분활 형식 정의
 ```
 
-## 데이터 소개
 
-아래는 제공하는 데이터셋의 분포를 보여줍니다.
 
-![데이터 분포](./assets/dataset.png)
+## data load & gdrive connection
 
-데이터셋은 편의성을 위해 Huggingface 에서 제공하는 datasets를 이용하여 pyarrow 형식의 데이터로 저장되어있습니다. 다음은 데이터셋의 구성입니다.
-
-```python
+```
+git checkout dataset
+dvc pull # 현재 폴더에 data 폴더 생성 (원하는 곳으로 옮겨주시면 됩니다) 
+dvc remote add -d data gdrive://0AI9DszIpkCl9Uk9PVA
 ```
 
-data에 대한 argument 는 `arguments.py` 의 `DataTrainingArguments` 에서 확인 가능합니다. 
+
+
+## version
+
+```
+tag 
+v1.0
+v1.1 - 초기 상태 데이터
+```
