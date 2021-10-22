@@ -163,7 +163,7 @@ def main(config):
     datasets = load_from_disk(data_args.dataset_name)
     print(datasets)
 
-    tokenizer, model = tokenizerAndModel.init(model_args)
+    tokenizer, model = tokenizerAndModel.init(model_args, dropout=config.dropout)
     model.to(device)
 
     # 오류가 있는지 확인합니다.
@@ -215,6 +215,7 @@ if __name__ == "__main__":
         pad_to_max_length=False,
         max_answer_length=30,
         max_seq_length=384,
+        dropout=0.1,
     )
     wandb.init(config=defaults)
     config = wandb.config

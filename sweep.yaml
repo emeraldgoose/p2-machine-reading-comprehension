@@ -2,7 +2,7 @@ program: train.py
 method: bayes
 metric:
   goal: minimize
-  name: train/exact_match
+  name: eval/eval_exact_match
 parameters:
   learning_rate:
     values: [1e-5, 2e-5, 3e-5, 4e-5, 5e-5]
@@ -15,5 +15,6 @@ parameters:
   max_answer_length:
     values: [30, 40, 50, 60, 70, 80, 90]
   max_seq_length:
-    values: [200, 300, 384, 400, 500, 512]
-    
+    values: [200, 250, 300, 384, 400, 500, 512]
+  dropout:
+    values: [0.1, 0.2]

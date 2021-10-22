@@ -2,7 +2,7 @@ from transformers import AutoConfig, AutoModelForQuestionAnswering, AutoTokenize
 from model import lstmOnRoberta
 
 
-def init(model_args):
+def init(model_args, dropout):
     # AutoConfig를 이용하여 pretrained model 과 tokenizer를 불러옵니다.
     # argument로 원하는 모델 이름을 설정하면 옵션을 바꿀 수 있습니다.
     config = AutoConfig.from_pretrained(
@@ -10,6 +10,9 @@ def init(model_args):
         if model_args.config_name is not None
         else model_args.model_name_or_path,
     )
+    config.num_labels = 2
+    config.dropout = dropout
+
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.tokenizer_name
         if model_args.tokenizer_name is not None
@@ -19,6 +22,7 @@ def init(model_args):
         # rust version이 비교적 속도가 빠릅니다.
         use_fast=True,
     )
-    model = lstmOnRoberta(dropout=model_args.dropout)
+
+    model = lstmOnRoberta(dropout=dropout)
     # model = RobertaForQuestionAnswering(config)
     return tokenizer, model

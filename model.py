@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torch.nn import LSTM, Linear, CrossEntropyLoss, Dropout
+from torch.nn import LSTM, Linear, CrossEntropyLoss
 
 from transformers import AutoConfig, RobertaModel
 from transformers.modeling_outputs import QuestionAnsweringModelOutput
@@ -17,16 +17,25 @@ class lstmOnRoberta(nn.Module):
         )
         self.hidden_size = self.roberta.embeddings.word_embeddings.weight.data.shape[1]
 
-        self.lstm = LSTM(
+        self.lstm1 = LSTM(
             input_size=self.hidden_size,
             hidden_size=self.hidden_size,
-            num_layers=2,
+            num_layers=1,
             dropout=dropout,
             batch_first=True,
             bidirectional=True,
         )  # (batch, seq_length, 2*hidden_size)
 
-        self.fc = Linear(self.hidden_size * 2, self.num_labels)
+        self.lstm2 = LSTM(
+            input_size=self.hidden_size,
+            hidden_size=self.hidden_size,
+            num_layers=1,
+            dropout=dropout,
+            batch_first=True,
+            bidirectional=True,
+        )
+
+        self.fc = Linear(self.hidden_size * 4, self.num_labels)
 
     def forward(
         self,
@@ -40,9 +49,17 @@ class lstmOnRoberta(nn.Module):
 
         sequence_output = outputs[0]  # sequence = (8, 384, 1024)
 
-        output, (hidden, cell) = self.lstm(
+        start_pos_output, (hidden, cell) = self.lstm1(
             sequence_output
         )  # output = (8, 384, 2048), hidden = (4, 8, 1024), cell = (4, 8, 1024)
+
+        end_pos_output, (hidden2, cell2) = self.lstm2(
+            sequence_output, (hidden, cell)
+        )  # output = (8, 384, 2048)
+
+        output = torch.cat(
+            (start_pos_output, end_pos_output), dim=2
+        )  # output = (8, 384, 4096)
 
         logits = self.fc(output)  # logits = (8, 384, 2)
 

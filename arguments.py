@@ -26,7 +26,7 @@ class ModelArguments:
             "help": "Pretrained tokenizer name or path if not the same as model_name"
         },
     )
-    dropout: int = field(
+    dropout: float = field(
         default=0.1, metadata={"help": "lstmOnRoberta's LSTM layer dropout probability"}
     )
 
