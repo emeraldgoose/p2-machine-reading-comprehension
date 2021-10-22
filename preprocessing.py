@@ -1,3 +1,7 @@
+import copy
+from os import truncate
+
+
 def train_preprocessor(
     tokenizer,
     data_args,
@@ -14,7 +18,7 @@ def train_preprocessor(
         tokenized_examples = tokenizer(
             examples[question_column_name if pad_on_right else context_column_name],
             examples[context_column_name if pad_on_right else question_column_name],
-            truncation="only_second" if pad_on_right else "only_first",
+            truncation=True,
             max_length=max_seq_length,
             stride=data_args.doc_stride,
             return_overflowing_tokens=True,
@@ -25,6 +29,7 @@ def train_preprocessor(
 
         # 길이가 긴 context가 등장할 경우 truncate를 진행해야하므로, 해당 데이터셋을 찾을 수 있도록 mapping 가능한 값이 필요합니다.
         sample_mapping = tokenized_examples.pop("overflow_to_sample_mapping")
+
         # token의 캐릭터 단위 position를 찾을 수 있도록 offset mapping을 사용합니다.
         # start_positions과 end_positions을 찾는데 도움을 줄 수 있습니다.
         offset_mapping = tokenized_examples.pop("offset_mapping")
