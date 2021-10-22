@@ -19,6 +19,6 @@ def init(model_args):
         # rust version이 비교적 속도가 빠릅니다.
         use_fast=True,
     )
-    model = lstmOnRoberta("klue/roberta-large", dropout=model_args.dropout)
+    model = lstmOnRoberta(dropout=model_args.dropout)
     # model = RobertaForQuestionAnswering(config)
     return tokenizer, model
