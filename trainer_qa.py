@@ -61,15 +61,18 @@ class QuestionAnsweringTrainer(Trainer):
                 eval_examples, eval_dataset, output.predictions, self.args
             )
             metrics = self.compute_metrics(eval_preds)
+            new_metrics = dict(
+                eval_exact_match=metrics["exact_match"], eval_f1=metrics["f1"]
+            )
 
-            self.log(metrics)
+            self.log(new_metrics)
         else:
             metrics = {}
 
         self.control = self.callback_handler.on_evaluate(
-            self.args, self.state, self.control, metrics
+            self.args, self.state, self.control, new_metrics
         )
-        return metrics
+        return new_metrics
 
     def predict(self, test_dataset, test_examples, ignore_keys=None):
         test_dataloader = self.get_test_dataloader(test_dataset)

@@ -1,5 +1,7 @@
+import gc
 import logging
 import os
+from re import L
 import sys
 
 import torch
@@ -17,6 +19,7 @@ from transformers import (
 
 from tokenizers import Tokenizer
 from tokenizers.models import WordPiece
+from transformers.trainer_callback import CallbackHandler, EarlyStoppingCallback
 
 from utils_qa import postprocess_qa_predictions, check_no_error
 from trainer_qa import QuestionAnsweringTrainer
@@ -40,24 +43,32 @@ logger = logging.getLogger(__name__)
 def train(
     training_args,
     model_args,
+    data_args,
     model,
     tokenizer,
     train_dataset,
+    eval_dataset,
+    datasets,
     last_checkpoint,
     data_collator,
     compute_metrics,
 ):
+    # Garbage Collector와 gpu 캐쉬 비우기
+    gc.collect()
+    torch.cuda.empty_cache()
 
     # Trainer 초기화
     trainer = QuestionAnsweringTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
-        eval_dataset=None,
-        eval_examples=None,
+        eval_dataset=eval_dataset,
+        eval_examples=datasets["validation"],
         tokenizer=tokenizer,
         data_collator=data_collator,
+        post_process_function=postprocessor(training_args, data_args, datasets),
         compute_metrics=compute_metrics,
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
     )
 
     # Training
@@ -91,40 +102,6 @@ def train(
     )
 
 
-def eval(
-    training_args,
-    data_args,
-    model,
-    tokenizer,
-    datasets,
-    eval_dataset,
-    data_collator,
-    compute_metrics,
-):
-    training_args.do_train = False
-    training_args.do_eval = True
-
-    trainer = QuestionAnsweringTrainer(
-        model=model,
-        args=training_args,
-        train_dataset=None,
-        eval_dataset=eval_dataset,
-        eval_examples=datasets["validation"],
-        tokenizer=tokenizer,
-        data_collator=data_collator,
-        post_process_function=postprocessor(training_args, data_args, datasets),
-        compute_metrics=compute_metrics,
-    )
-
-    logger.info("*** Evaluate ***")
-    metrics = trainer.evaluate()
-
-    metrics["eval_samples"] = len(eval_dataset)
-
-    trainer.log_metrics("eval", metrics)
-    trainer.save_metrics("eval", metrics)
-
-
 def main(config):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -142,15 +119,20 @@ def main(config):
     training_args = TrainingArguments(
         output_dir="./models/train_dataset/",
         report_to="wandb",
-        do_train=True,
         overwrite_output_dir=True,
+        per_device_train_batch_size=8,
         per_device_eval_batch_size=8,
         learning_rate=config.learning_rate,
         num_train_epochs=config.epochs,
         weight_decay=config.weight_decay,
         logging_steps=100,
+        save_steps=100,
+        eval_steps=100,
+        evaluation_strategy="steps",
         save_total_limit=5,
-        remove_unused_columns=False,
+        # remove_unused_columns=False,
+        load_best_model_at_end=True,
+        metric_for_best_model="exact_match",
     )
 
     data_args = DataTrainingArguments(
@@ -194,6 +176,8 @@ def main(config):
     train_dataset, eval_dataset = make_dataset.make_dataset(
         data_args, datasets, tokenizer, max_seq_length
     )
+    print(train_dataset.column_names)
+    print(eval_dataset.column_names)
 
     # Data collator
     # flag가 True이면 이미 max length로 padding된 상태입니다.
@@ -211,25 +195,16 @@ def main(config):
     train(
         training_args,
         model_args,
+        data_args,
         model,
         tokenizer,
         train_dataset,
+        eval_dataset,
+        datasets,
         last_checkpoint,
         data_collator,
         compute_metrics,
     )
-
-    # # eval
-    # eval(
-    #     training_args,
-    #     data_args,
-    #     model,
-    #     tokenizer,
-    #     datasets,
-    #     eval_dataset,
-    #     data_collator,
-    #     compute_metrics,
-    # )
 
 
 if __name__ == "__main__":
