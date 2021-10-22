@@ -1,5 +1,5 @@
 from transformers import AutoConfig, AutoModelForQuestionAnswering, AutoTokenizer
-from model import RobertaForQuestionAnswering, lstmOnRoberta
+from model import lstmOnRoberta
 
 
 def init(model_args):
