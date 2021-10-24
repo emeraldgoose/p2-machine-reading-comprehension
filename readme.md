@@ -19,7 +19,7 @@ pip install dvc
 
 ```
 .dvc            # 데이터 저장된 폴더
-data.dvc        # 데이터 분활 형식 정의
+data.dvc        # 데이터 분할 형식 정의
 ```
 
 
