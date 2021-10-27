@@ -29,6 +29,9 @@ class ModelArguments:
     dropout: float = field(
         default=0.1, metadata={"help": "lstmOnRoberta's LSTM layer dropout probability"}
     )
+    ver: str = field(
+        default="original",
+    )
 
 
 @dataclass
@@ -42,7 +45,7 @@ class DataTrainingArguments:
         metadata={"help": "The name of the dataset to use."},
     )
     overwrite_cache: bool = field(
-        default=False,
+        default=True,
         metadata={"help": "Overwrite the cached training and evaluation sets"},
     )
     preprocessing_num_workers: Optional[int] = field(
@@ -50,7 +53,7 @@ class DataTrainingArguments:
         metadata={"help": "The number of processes to use for the preprocessing."},
     )
     max_seq_length: int = field(
-        default=384,
+        default=512,
         metadata={
             "help": "The maximum total input sequence length after tokenization. Sequences longer "
             "than this will be truncated, sequences shorter will be padded."
@@ -83,7 +86,7 @@ class DataTrainingArguments:
         metadata={"help": "Whether to run passage retrieval using sparse embedding."},
     )
     num_clusters: int = field(
-        default=64, metadata={"help": "Define how many clusters to use for faiss."}
+        default=128, metadata={"help": "Define how many clusters to use for faiss."}
     )
     top_k_retrieval: int = field(
         default=1,

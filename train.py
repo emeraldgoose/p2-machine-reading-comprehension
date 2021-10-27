@@ -126,8 +126,8 @@ def main(config):
         num_train_epochs=config.epochs,
         weight_decay=config.weight_decay,
         logging_steps=100,
-        save_steps=100,
-        eval_steps=100,
+        save_steps=300,
+        eval_steps=300,
         evaluation_strategy="steps",
         save_total_limit=5,
         # remove_unused_columns=False,
@@ -144,8 +144,7 @@ def main(config):
         max_answer_length=config.max_answer_length,
     )
 
-    print(f"model is from {model_args.model_name_or_path}")
-    print(f"data is from {data_args.dataset_name}")
+    print(training_args, data_args)
 
     # logging 설정
     logging.basicConfig(
@@ -163,7 +162,9 @@ def main(config):
     datasets = load_from_disk(data_args.dataset_name)
     print(datasets)
 
-    tokenizer, model = tokenizerAndModel.init(model_args, dropout=config.dropout)
+    ver = config.ver
+    tokenizer, model = tokenizerAndModel.init(ver=ver, model_args=model_args, training_args=training_args, dropout=config.dropout)
+    wandb.watch(model)
     model.to(device)
 
     # 오류가 있는지 확인합니다.
@@ -176,8 +177,6 @@ def main(config):
     train_dataset, eval_dataset = make_dataset.make_dataset(
         data_args, datasets, tokenizer, max_seq_length
     )
-    print(train_dataset.column_names)
-    print(eval_dataset.column_names)
 
     # Data collator
     # flag가 True이면 이미 max length로 padding된 상태입니다.
@@ -209,13 +208,14 @@ def main(config):
 
 if __name__ == "__main__":
     defaults = dict(
+        ver='original',
         learning_rate=1e-5,
         epochs=1,
         weight_decay=0.01,
-        pad_to_max_length=False,
+        pad_to_max_length=True,
         max_answer_length=30,
-        max_seq_length=384,
-        dropout=0.1,
+        max_seq_length=200,
+        dropout=0.0,
     )
     wandb.init(config=defaults)
     config = wandb.config

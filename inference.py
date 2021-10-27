@@ -4,12 +4,17 @@ Open-Domain Question Answering 을 수행하는 inference 코드 입니다.
 대부분의 로직은 train.py 와 비슷하나 retrieval, predict 부분이 추가되어 있습니다.
 """
 
-
+import os
+import json
 import logging
 import sys
 from typing import Callable, List, Dict, NoReturn, Tuple
+import datasets
 
+import pandas as pd
 import numpy as np
+
+from tqdm import tqdm
 
 from datasets import (
     load_metric,
@@ -40,6 +45,8 @@ from arguments import (
     ModelArguments,
     DataTrainingArguments,
 )
+
+from elasticsearch import Elasticsearch
 
 
 logger = logging.getLogger(__name__)
@@ -75,92 +82,130 @@ def main():
     set_seed(training_args.seed)
 
     datasets = load_from_disk(data_args.dataset_name)
-    print(datasets)
 
     # AutoConfig를 이용하여 pretrained model 과 tokenizer를 불러옵니다.
     # argument로 원하는 모델 이름을 설정하면 옵션을 바꿀 수 있습니다.
-    config = AutoConfig.from_pretrained(
-        model_args.config_name
-        if model_args.config_name
-        else model_args.model_name_or_path,
-    )
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_args.tokenizer_name
-        if model_args.tokenizer_name
-        else model_args.model_name_or_path,
-        use_fast=True,
-    )
-    # model = AutoModelForQuestionAnswering.from_pretrained(
-    #     model_args.model_name_or_path,
-    #     from_tf=bool(".ckpt" in model_args.model_name_or_path),
-    #     config=config,
-    # )
-    model = lstmOnRoberta(dropout=model_args.dropout)
+    config = AutoConfig.from_pretrained(model_args.model_name_or_path)
+    tokenizer = AutoTokenizer.from_pretrained('klue/roberta-large')
 
-    # True일 경우 : run passage retrieval
-    if data_args.eval_retrieval:
-        datasets = run_sparse_retrieval(
-            tokenizer.tokenize, datasets, training_args, data_args,
-        )
+    # insert speical tokens (unk, unused token)
+    user_defined_symbols = []
+    
+    for i in range(1,10):
+        user_defined_symbols.append(f'[UNK{i}]')
+
+    for i in range(500,700):
+        user_defined_symbols.append(f'[unused{i}]')
+    
+    special_tokens_dict = {'additional_special_tokens': user_defined_symbols}
+    tokenizer.add_special_tokens(special_tokens_dict)
+
+    model = AutoModelForQuestionAnswering.from_pretrained(
+        model_args.model_name_or_path,
+        from_tf=bool(".ckpt" in model_args.model_name_or_path),
+        config=config,
+    )
+    # model = lstmOnRoberta(dropout=config.dropout)
+    model.resize_token_embeddings(tokenizer.vocab_size + len(user_defined_symbols))
+
+    print('finish load model, tokenizer')
+
+    # Using Elastic Search
+    datasets = run_elastic_search(tokenizer.tokenize, datasets, training_args, data_args)
+
+    print(datasets)
 
     # eval or predict mrc model
     if training_args.do_eval or training_args.do_predict:
         run_mrc(data_args, training_args, model_args, datasets, tokenizer, model)
 
-
-def run_sparse_retrieval(
+def run_elastic_search(
     tokenize_fn: Callable[[str], List[str]],
-    datasets: DatasetDict,
+    datasets: datasets,
     training_args: TrainingArguments,
     data_args: DataTrainingArguments,
-    data_path: str = "../data",
-    context_path: str = "wikipedia_documents.json",
+    data_path: str="../data",
+    context_path: str="wikipedia_documents.json",
 ) -> DatasetDict:
+    
+    es = Elasticsearch('localhost:9200')
+    print(es.info())
 
-    # Query에 맞는 Passage들을 Retrieval 합니다.
-    retriever = SparseRetrieval(
-        tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
-    )
-    retriever.get_sparse_embedding()
+    # Wikipedia 데이터를 json 라이브러리를 이용해 불러온다
+    with open(os.path.join(data_path,context_path)) as f:
+        wiki = json.load(f)
+    
+    # 필요없는 필드는 삭제한다
+    for i in range(len(wiki)):
+        del wiki[str(i)]['corpus_source']
+        del wiki[str(i)]['domain']
+        del wiki[str(i)]['author']
+        del wiki[str(i)]['html']
+        del wiki[str(i)]['document_id']
+        del wiki[str(i)]['url']
 
-    if data_args.use_faiss:
-        retriever.build_faiss(num_clusters=data_args.num_clusters)
-        df = retriever.retrieve_faiss(
-            datasets["validation"], topk=data_args.top_k_retrieval
-        )
-    else:
-        df = retriever.retrieve(datasets["validation"], topk=data_args.top_k_retrieval)
-
-    # test data 에 대해선 정답이 없으므로 id question context 로만 데이터셋이 구성됩니다.
-    if training_args.do_predict:
-        f = Features(
-            {
-                "context": Value(dtype="string", id=None),
-                "id": Value(dtype="string", id=None),
-                "question": Value(dtype="string", id=None),
-            }
-        )
-
-    # train data 에 대해선 정답이 존재하므로 id question context answer 로 데이터셋이 구성됩니다.
-    elif training_args.do_eval:
-        f = Features(
-            {
-                "answers": Sequence(
-                    feature={
-                        "text": Value(dtype="string", id=None),
-                        "answer_start": Value(dtype="int32", id=None),
+    INDEX_NAME = 'wiki'
+    index_config = {
+            "settings": {
+                "analysis": {
+                    "filter":{
+                        "my_stop_filter": { 
+                            "type" : "stop",
+                            "stopwords_path" : "my_stopwords.txt" # /etc/elastic안에 stopword가 정의된 텍스트파일이 존재해야 한다
+                        }
                     },
-                    length=-1,
-                    id=None,
-                ),
-                "context": Value(dtype="string", id=None),
-                "id": Value(dtype="string", id=None),
-                "question": Value(dtype="string", id=None),
+                    "analyzer": {
+                        "nori_analyzer": {
+                            "type": "custom",
+                            "tokenizer": "nori_tokenizer", # 노리 형태소 깔아야대는데 에러나면 맨위에 참고해서 깔기
+                            "decompound_mode": "mixed",
+                            "filter" : ["my_stop_filter"] # 위에서 정의한 stopword
+                        }
+                    }
+                }
+            },
+            "mappings": {
+                "dynamic": "strict",
+                "properties": {
+                    "text": {"type": "text", "analyzer": "nori_analyzer"},
+                    "title":{"type": "text"}
+                    }
+                }
             }
-        )
+        
+    if es.indices.exists(index=INDEX_NAME):
+        es.indices.delete(index=INDEX_NAME)
+    es.indices.create(index=INDEX_NAME, body=index_config)
+
+    tv = es.termvectors(index=INDEX_NAME, id=2, body={"fields" : ["content","title"]})
+
+    # test question에 따라 문서를 불러온다
+    test_datasets = load_from_disk('/opt/ml/data/test_dataset')
+
+    total = []
+    
+    context_data = pd.read_csv('add_context_test_dataset.csv')
+
+    for i in range(len(context_data)):
+        tmp = {
+            'context': context_data['res'].iloc[i],
+            'id': context_data['id'].iloc[i],
+            'question': test_datasets['validation'][i]['question'],
+        }
+        total.append(tmp)
+    
+    df = pd.DataFrame(total)
+
+    f = Features(
+        {
+            "context": Value(dtype="string", id=None),
+            "id": Value(dtype="string", id=None),
+            "question": Value(dtype="string", id=None),
+        }
+    )
+
     datasets = DatasetDict({"validation": Dataset.from_pandas(df, features=f)})
     return datasets
-
 
 def run_mrc(
     data_args: DataTrainingArguments,
@@ -199,7 +244,7 @@ def run_mrc(
             stride=data_args.doc_stride,
             return_overflowing_tokens=True,
             return_offsets_mapping=True,
-            # return_token_type_ids=False, # roberta모델을 사용할 경우 False, bert를 사용할 경우 True로 표기해야합니다.
+            return_token_type_ids=False,  # roberta모델을 사용할 경우 False, bert를 사용할 경우 True로 표기해야합니다.
             padding="max_length" if data_args.pad_to_max_length else False,
         )
 

@@ -1,20 +1,22 @@
 program: train.py
-method: bayes
+method: grid
 metric:
   goal: minimize
-  name: eval/eval_exact_match
+  name: eval/exact_match
 parameters:
+  ver:
+    values: ['original', 'ver_1', 'ver_2']
   learning_rate:
     values: [1e-5, 2e-5, 3e-5, 4e-5, 5e-5]
   num_train_epochs:
-    values: [1,2,3,4,5,6,7,8,9,10]
+    values: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
   weight_decay:
     values: [0.01, 0.009, 0.008, 0.007, 0.006, 0.005, 0.004, 0.003, 0.002, 0.001]
   pad_to_max_length:
     values: [True, False]
   max_answer_length:
-    values: [30, 40, 50, 60, 70, 80, 90]
+    values: [30, 40, 50, 60, 70, 80, 84]
   max_seq_length:
     values: [200, 250, 300, 384, 400, 500, 512]
   dropout:
-    values: [0.1, 0.2]
+    values: [0.0, 0.1, 0.2]
