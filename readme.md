@@ -40,5 +40,8 @@ dvc remote add -d data gdrive://0AI9DszIpkCl9Uk9PVA
 tag 
 v1.0
 v1.1 - 초기 상태 데이터
+<<<<<<< HEAD
 v2.0 - #, \n\n, \n 문자 제거
+=======
+>>>>>>> 5a0c67f597ed4188e9c4fb26a706c8e63264cae3
 ```
