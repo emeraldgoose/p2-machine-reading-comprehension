@@ -27,9 +27,9 @@ data.dvc        # 데이터 분할 형식 정의
 ## data load & gdrive connection
 
 ```
-git checkout dataset
-dvc pull # 현재 폴더에 data 폴더 생성 (원하는 곳으로 옮겨주시면 됩니다) 
-dvc remote add -d data gdrive://0AI9DszIpkCl9Uk9PVA
+chmod +x load_dataset.sh
+./load_dataset.sh
+구글 인증해주시면 데이터 생싱이 
 ```
 
 
