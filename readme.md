@@ -29,7 +29,7 @@ data.dvc        # 데이터 분할 형식 정의
 ```
 chmod +x load_dataset.sh
 ./load_dataset.sh
-구글 인증해주시면 데이터 생싱이 
+구글 인증해주시면 데이터 생성이 됩니다
 ```
 
 
