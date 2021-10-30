@@ -4,5 +4,4 @@ __pycache__
 models
 output
 data/
-huggingface_datasets_upload.ipynb
 /data
