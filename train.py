@@ -20,6 +20,7 @@ from transformers import (
 from tokenizers import Tokenizer
 from tokenizers.models import WordPiece
 from transformers.trainer_callback import CallbackHandler, EarlyStoppingCallback
+from transformers.utils.dummy_tf_objects import WarmUp
 
 from utils_qa import postprocess_qa_predictions, check_no_error
 from trainer_qa import QuestionAnsweringTrainer
@@ -68,7 +69,6 @@ def train(
         data_collator=data_collator,
         post_process_function=postprocessor(training_args, data_args, datasets),
         compute_metrics=compute_metrics,
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
     )
 
     # Training
@@ -120,17 +120,16 @@ def main(config):
         output_dir="./models/train_dataset/",
         report_to="wandb",
         overwrite_output_dir=True,
-        per_device_train_batch_size=8,
-        per_device_eval_batch_size=8,
+        per_device_train_batch_size=32,
+        per_device_eval_batch_size=32,
         learning_rate=config.learning_rate,
         num_train_epochs=config.epochs,
         weight_decay=config.weight_decay,
         logging_steps=100,
-        save_steps=300,
-        eval_steps=300,
+        save_steps=100,
+        eval_steps=100,
         evaluation_strategy="steps",
         save_total_limit=5,
-        # remove_unused_columns=False,
         load_best_model_at_end=True,
         metric_for_best_model="exact_match",
     )
@@ -143,8 +142,6 @@ def main(config):
         pad_to_max_length=config.pad_to_max_length,
         max_answer_length=config.max_answer_length,
     )
-
-    print(training_args, data_args)
 
     # logging 설정
     logging.basicConfig(
@@ -162,8 +159,7 @@ def main(config):
     datasets = load_from_disk(data_args.dataset_name)
     print(datasets)
 
-    ver = config.ver
-    tokenizer, model = tokenizerAndModel.init(ver=ver, model_args=model_args, training_args=training_args, dropout=config.dropout)
+    tokenizer, model = tokenizerAndModel.init(model_args=model_args)
     wandb.watch(model)
     model.to(device)
 
@@ -208,14 +204,12 @@ def main(config):
 
 if __name__ == "__main__":
     defaults = dict(
-        ver='original',
         learning_rate=1e-5,
-        epochs=1,
-        weight_decay=0.01,
+        epochs=2,
+        weight_decay=0.009,
         pad_to_max_length=True,
         max_answer_length=30,
         max_seq_length=200,
-        dropout=0.0,
     )
     wandb.init(config=defaults)
     config = wandb.config

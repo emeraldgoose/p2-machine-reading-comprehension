@@ -10,6 +10,7 @@ import logging
 import sys
 from typing import Callable, List, Dict, NoReturn, Tuple
 import datasets
+from datasets import dataset_dict
 
 import pandas as pd
 import numpy as np
@@ -38,15 +39,12 @@ from transformers import (
 
 from utils_qa import postprocess_qa_predictions, check_no_error
 from trainer_qa import QuestionAnsweringTrainer
-from retrieval import SparseRetrieval
-from model import lstmOnRoberta
+from model import mlpOnRoberta
 
 from arguments import (
     ModelArguments,
     DataTrainingArguments,
 )
-
-from elasticsearch import Elasticsearch
 
 
 logger = logging.getLogger(__name__)
@@ -83,101 +81,31 @@ def main():
 
     datasets = load_from_disk(data_args.dataset_name)
 
-    # AutoConfig를 이용하여 pretrained model 과 tokenizer를 불러옵니다.
-    # argument로 원하는 모델 이름을 설정하면 옵션을 바꿀 수 있습니다.
     config = AutoConfig.from_pretrained(model_args.model_name_or_path)
-    tokenizer = AutoTokenizer.from_pretrained('klue/roberta-large')
-
-    # insert speical tokens (unk, unused token)
-    user_defined_symbols = []
+    tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path)
     
-    for i in range(1,10):
-        user_defined_symbols.append(f'[UNK{i}]')
-
-    for i in range(500,700):
-        user_defined_symbols.append(f'[unused{i}]')
-    
-    special_tokens_dict = {'additional_special_tokens': user_defined_symbols}
-    tokenizer.add_special_tokens(special_tokens_dict)
-
-    model = AutoModelForQuestionAnswering.from_pretrained(
-        model_args.model_name_or_path,
-        from_tf=bool(".ckpt" in model_args.model_name_or_path),
-        config=config,
-    )
-    # model = lstmOnRoberta(dropout=config.dropout)
-    model.resize_token_embeddings(tokenizer.vocab_size + len(user_defined_symbols))
-
-    print('finish load model, tokenizer')
+    # model = mlpOnRoberta(config=config)
+    model = AutoModelForQuestionAnswering.from_pretrained(model_args.model_name_or_path, config=config)
 
     # Using Elastic Search
-    datasets = run_elastic_search(tokenizer.tokenize, datasets, training_args, data_args)
+    datasets_1 = run_elastic_search(datasets, 1)
+    datasets_2 = run_elastic_search(datasets, 2)
+    datasets_3 = run_elastic_search(datasets, 3)
 
-    print(datasets)
+    print(datasets_1)
+
+    datasets = [datasets_1, datasets_2, datasets_3]
 
     # eval or predict mrc model
-    if training_args.do_eval or training_args.do_predict:
-        run_mrc(data_args, training_args, model_args, datasets, tokenizer, model)
+    for i in range(3):
+        run_mrc(data_args, training_args, model_args, datasets[i], f'{i+1}', tokenizer, model)
 
 def run_elastic_search(
-    tokenize_fn: Callable[[str], List[str]],
     datasets: datasets,
-    training_args: TrainingArguments,
-    data_args: DataTrainingArguments,
+    num: int,
     data_path: str="../data",
     context_path: str="wikipedia_documents.json",
 ) -> DatasetDict:
-    
-    es = Elasticsearch('localhost:9200')
-    print(es.info())
-
-    # Wikipedia 데이터를 json 라이브러리를 이용해 불러온다
-    with open(os.path.join(data_path,context_path)) as f:
-        wiki = json.load(f)
-    
-    # 필요없는 필드는 삭제한다
-    for i in range(len(wiki)):
-        del wiki[str(i)]['corpus_source']
-        del wiki[str(i)]['domain']
-        del wiki[str(i)]['author']
-        del wiki[str(i)]['html']
-        del wiki[str(i)]['document_id']
-        del wiki[str(i)]['url']
-
-    INDEX_NAME = 'wiki'
-    index_config = {
-            "settings": {
-                "analysis": {
-                    "filter":{
-                        "my_stop_filter": { 
-                            "type" : "stop",
-                            "stopwords_path" : "my_stopwords.txt" # /etc/elastic안에 stopword가 정의된 텍스트파일이 존재해야 한다
-                        }
-                    },
-                    "analyzer": {
-                        "nori_analyzer": {
-                            "type": "custom",
-                            "tokenizer": "nori_tokenizer", # 노리 형태소 깔아야대는데 에러나면 맨위에 참고해서 깔기
-                            "decompound_mode": "mixed",
-                            "filter" : ["my_stop_filter"] # 위에서 정의한 stopword
-                        }
-                    }
-                }
-            },
-            "mappings": {
-                "dynamic": "strict",
-                "properties": {
-                    "text": {"type": "text", "analyzer": "nori_analyzer"},
-                    "title":{"type": "text"}
-                    }
-                }
-            }
-        
-    if es.indices.exists(index=INDEX_NAME):
-        es.indices.delete(index=INDEX_NAME)
-    es.indices.create(index=INDEX_NAME, body=index_config)
-
-    tv = es.termvectors(index=INDEX_NAME, id=2, body={"fields" : ["content","title"]})
 
     # test question에 따라 문서를 불러온다
     test_datasets = load_from_disk('/opt/ml/data/test_dataset')
@@ -188,7 +116,7 @@ def run_elastic_search(
 
     for i in range(len(context_data)):
         tmp = {
-            'context': context_data['res'].iloc[i],
+            'context': context_data[f'text{num}'].iloc[i],
             'id': context_data['id'].iloc[i],
             'question': test_datasets['validation'][i]['question'],
         }
@@ -212,6 +140,7 @@ def run_mrc(
     training_args: TrainingArguments,
     model_args: ModelArguments,
     datasets: DatasetDict,
+    dataset_num,
     tokenizer,
     model,
 ) -> NoReturn:
@@ -303,6 +232,7 @@ def run_mrc(
             predictions=predictions,
             max_answer_length=data_args.max_answer_length,
             output_dir=training_args.output_dir,
+            prefix=dataset_num
         )
         # Metric을 구할 수 있도록 Format을 맞춰줍니다.
         formatted_predictions = [

@@ -26,13 +26,6 @@ class ModelArguments:
             "help": "Pretrained tokenizer name or path if not the same as model_name"
         },
     )
-    dropout: float = field(
-        default=0.1, metadata={"help": "lstmOnRoberta's LSTM layer dropout probability"}
-    )
-    ver: str = field(
-        default="original",
-    )
-
 
 @dataclass
 class DataTrainingArguments:
@@ -49,11 +42,11 @@ class DataTrainingArguments:
         metadata={"help": "Overwrite the cached training and evaluation sets"},
     )
     preprocessing_num_workers: Optional[int] = field(
-        default=None,
+        default=8,
         metadata={"help": "The number of processes to use for the preprocessing."},
     )
     max_seq_length: int = field(
-        default=512,
+        default=200,
         metadata={
             "help": "The maximum total input sequence length after tokenization. Sequences longer "
             "than this will be truncated, sequences shorter will be padded."
