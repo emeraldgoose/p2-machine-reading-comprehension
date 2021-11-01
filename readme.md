@@ -9,8 +9,12 @@ MRC dataset version control
 ## 설치 방법
 
 ```
-# dvc
-pip install dvc
+wget \
+https://dvc.org/deb/dvc.list \
+-O /etc/apt/sources.list.d/dvc.list
+wget -qO - https://dvc.org/deb/iterative.asc | apt-key add -
+apt update
+apt install dvc
 ```
 
 
@@ -19,7 +23,7 @@ pip install dvc
 
 ```
 .dvc            # 데이터 저장된 폴더
-data.dvc        # 데이터 분할 형식 정의
+data.dvc        # 데이터 분할 저장
 ```
 
 
@@ -27,9 +31,12 @@ data.dvc        # 데이터 분할 형식 정의
 ## data load & gdrive connection
 
 ```
-chmod +x load_dataset.sh
-./load_dataset.sh
-구글 인증해주시면 데이터 생성이 됩니다
+cd /opt/ml
+git init
+git remote add origin https://github.com/boostcampaitech2/mrc-level2-nlp-10.git
+git pull origin dataset
+rm -rf data
+dvc pull
 ```
 
 
@@ -43,4 +50,16 @@ v2.0 - #, \n\n, \n 문자 제거
 v3.0 - “”‘’ -> \', 
        〈<＜「≪《『 -> <,
        〉>＞」≫》』 -> >
+```
+
+## version control
+
+```
+git fetch --all --tags
+
+# 베포된 버전 목록 확인
+git tag
+
+# ex) v1.0으로 이동 
+git checkout v1.0
 ```
