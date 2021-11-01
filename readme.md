@@ -9,12 +9,9 @@ MRC dataset version control
 ## 설치 방법
 
 ```
-wget \
-https://dvc.org/deb/dvc.list \
--O /etc/apt/sources.list.d/dvc.list
-wget -qO - https://dvc.org/deb/iterative.asc | apt-key add -
-apt update
-apt install dvc
+wget https://dvc.org/deb/dvc.list -O /etc/apt/sources.list.d/dvc.list
+apt-get update
+apt-get install dvc
 ```
 
 
@@ -34,7 +31,8 @@ data.dvc        # 데이터 분할 저장
 cd /opt/ml
 git init
 git remote add origin https://github.com/boostcampaitech2/mrc-level2-nlp-10.git
-git pull origin dataset
+git pull
+git checkout dataset
 rm -rf data
 dvc pull
 ```
@@ -55,8 +53,6 @@ v3.0 - “”‘’ -> \',
 ## version control
 
 ```
-git fetch --all --tags
-
 # 베포된 버전 목록 확인
 git tag
 
