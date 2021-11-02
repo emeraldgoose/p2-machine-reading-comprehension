@@ -9,7 +9,7 @@ class ModelArguments:
     """
 
     model_name_or_path: str = field(
-        default="klue/bert-base",
+        default="klue/roberta-large",
         metadata={
             "help": "Path to pretrained model or model identifier from huggingface.co/models"
         },
@@ -26,6 +26,12 @@ class ModelArguments:
             "help": "Pretrained tokenizer name or path if not the same as model_name"
         },
     )
+    dropout: float = field(
+        default=0.1, metadata={"help": "lstmOnRoberta's LSTM layer dropout probability"}
+    )
+    ver: str = field(
+        default="original",
+    )
 
 
 @dataclass
@@ -39,7 +45,7 @@ class DataTrainingArguments:
         metadata={"help": "The name of the dataset to use."},
     )
     overwrite_cache: bool = field(
-        default=False,
+        default=True,
         metadata={"help": "Overwrite the cached training and evaluation sets"},
     )
     preprocessing_num_workers: Optional[int] = field(
@@ -47,24 +53,18 @@ class DataTrainingArguments:
         metadata={"help": "The number of processes to use for the preprocessing."},
     )
     max_seq_length: int = field(
-        default=384,
+        default=512,
         metadata={
             "help": "The maximum total input sequence length after tokenization. Sequences longer "
             "than this will be truncated, sequences shorter will be padded."
         },
     )
     pad_to_max_length: bool = field(
-        default=False,
+        default=True,
         metadata={
             "help": "Whether to pad all samples to `max_seq_length`. "
             "If False, will pad the samples dynamically when batching to the maximum length in the batch (which can "
             "be faster on GPU but will be slower on TPU)."
-        },
-    )
-    doc_stride: int = field(
-        default=128,
-        metadata={
-            "help": "When splitting up a long document into chunks, how much stride to take between chunks."
         },
     )
     max_answer_length: int = field(
@@ -74,12 +74,19 @@ class DataTrainingArguments:
             "and end predictions are not conditioned on one another."
         },
     )
+    # 아래부터 retriever 영역
+    doc_stride: int = field(
+        default=128,
+        metadata={
+            "help": "When splitting up a long document into chunks, how much stride to take between chunks."
+        },
+    )
     eval_retrieval: bool = field(
         default=True,
         metadata={"help": "Whether to run passage retrieval using sparse embedding."},
     )
     num_clusters: int = field(
-        default=64, metadata={"help": "Define how many clusters to use for faiss."}
+        default=128, metadata={"help": "Define how many clusters to use for faiss."}
     )
     top_k_retrieval: int = field(
         default=1,
@@ -88,5 +95,5 @@ class DataTrainingArguments:
         },
     )
     use_faiss: bool = field(
-        default=False, metadata={"help": "Whether to build with faiss"}
+        default=True, metadata={"help": "Whether to build with faiss"}
     )
