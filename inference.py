@@ -39,7 +39,7 @@ from transformers import (
 
 from utils_qa import postprocess_qa_predictions, check_no_error
 from trainer_qa import QuestionAnsweringTrainer
-from model import mlpOnRoberta
+from model import lstmOnRoberta
 
 from arguments import (
     ModelArguments,
@@ -85,20 +85,30 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path)
     
     # model = mlpOnRoberta(config=config)
-    model = AutoModelForQuestionAnswering.from_pretrained(model_args.model_name_or_path, config=config)
+    # model = AutoModelForQuestionAnswering.from_pretrained(model_args.model_name_or_path, config=config)
+    model = lstmOnRoberta.from_pretrained(model_args.model_name_or_path, config=config)
 
     # Using Elastic Search
     datasets_1 = run_elastic_search(datasets, 1)
     datasets_2 = run_elastic_search(datasets, 2)
     datasets_3 = run_elastic_search(datasets, 3)
+    datasets_4 = run_elastic_search(datasets, 4)
+    datasets_5 = run_elastic_search(datasets, 5)
+    datasets_6 = run_elastic_search(datasets, 6)
+    datasets_7 = run_elastic_search(datasets, 7)
+    datasets_8 = run_elastic_search(datasets, 8)
+    datasets_9 = run_elastic_search(datasets, 9)
+    datasets_10 = run_elastic_search(datasets, 10)
 
-    print(datasets_1)
+    # datasets = run_elastic_search(datasets)
+    # print(datasets['validation']['context'][0])
 
-    datasets = [datasets_1, datasets_2, datasets_3]
+    datasets = [datasets_1, datasets_2, datasets_3, datasets_4, datasets_5, datasets_6, datasets_7, datasets_8, datasets_9, datasets_10]
 
     # eval or predict mrc model
-    for i in range(3):
+    for i in range(10):
         run_mrc(data_args, training_args, model_args, datasets[i], f'{i+1}', tokenizer, model)
+    # run_mrc(data_args, training_args, model_args, datasets, tokenizer, model)
 
 def run_elastic_search(
     datasets: datasets,
@@ -114,13 +124,29 @@ def run_elastic_search(
     
     context_data = pd.read_csv('add_context_test_dataset.csv')
 
+    # for i in range(len(context_data)):
+    #     tmp = {
+    #         'context': context_data[f'text{num}'].iloc[i],
+    #         'id': context_data['id'].iloc[i],
+    #         'question': test_datasets['validation'][i]['question'],
+    #     }
+    #     total.append(tmp)
+
     for i in range(len(context_data)):
-        tmp = {
-            'context': context_data[f'text{num}'].iloc[i],
-            'id': context_data['id'].iloc[i],
-            'question': test_datasets['validation'][i]['question'],
-        }
-        total.append(tmp)
+        # context = ""
+        # for j in range(1,11): context += context_data[f'text{j}'].iloc[i]
+        # tmp = {
+        #     'context': context,
+        #     'id': context_data['id'].iloc[i],
+        #     'question': test_datasets['validation'][i]['question'],
+        # }
+        for j in range(10):
+            tmp = {
+                'context': context_data[f'text{j+1}'].iloc[i],
+                'id': context_data['id'].iloc[i],
+                'question': test_datasets['validation'][i]['question'],
+            }
+            total.append(tmp)
     
     df = pd.DataFrame(total)
 
@@ -232,7 +258,7 @@ def run_mrc(
             predictions=predictions,
             max_answer_length=data_args.max_answer_length,
             output_dir=training_args.output_dir,
-            prefix=dataset_num
+            # prefix=dataset_num
         )
         # Metric을 구할 수 있도록 Format을 맞춰줍니다.
         formatted_predictions = [

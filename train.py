@@ -120,12 +120,12 @@ def main(config):
         output_dir="./models/train_dataset/",
         report_to="wandb",
         overwrite_output_dir=True,
-        per_device_train_batch_size=32,
-        per_device_eval_batch_size=32,
+        per_device_train_batch_size=8,
+        per_device_eval_batch_size=8,
         learning_rate=config.learning_rate,
         num_train_epochs=config.epochs,
         weight_decay=config.weight_decay,
-        logging_steps=100,
+        logging_steps=10,
         save_steps=100,
         eval_steps=100,
         evaluation_strategy="steps",
@@ -135,7 +135,7 @@ def main(config):
     )
 
     data_args = DataTrainingArguments(
-        dataset_name="../data/train_dataset",
+        dataset_name="../data_v3/train_dataset",
         overwrite_cache=False,
         preprocessing_num_workers=8,
         max_seq_length=config.max_seq_length,
