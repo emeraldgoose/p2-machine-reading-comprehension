@@ -7,6 +7,8 @@ import sys
 import torch
 import dataclasses
 from datasets import load_metric, load_from_disk, Dataset, DatasetDict
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim import AdamW, adamw
 
 from transformers import (
     Trainer,
@@ -17,14 +19,8 @@ from transformers import (
     set_seed,
 )
 
-from tokenizers import Tokenizer
-from tokenizers.models import WordPiece
-from transformers.trainer_callback import CallbackHandler, EarlyStoppingCallback
-from transformers.utils.dummy_tf_objects import WarmUp
-
 from utils_qa import postprocess_qa_predictions, check_no_error
 from trainer_qa import QuestionAnsweringTrainer
-from retrieval import SparseRetrieval
 
 from arguments import (
     ModelArguments,
@@ -58,6 +54,10 @@ def train(
     gc.collect()
     torch.cuda.empty_cache()
 
+    # optimizer, lr_scheduler
+    adamW = AdamW(model.parameters(),lr=1e-5,weight_decay=0.009)
+    reduceLROnPlateau = ReduceLROnPlateau(adamW, patience=3)
+
     # Trainer 초기화
     trainer = QuestionAnsweringTrainer(
         model=model,
@@ -69,6 +69,7 @@ def train(
         data_collator=data_collator,
         post_process_function=postprocessor(training_args, data_args, datasets),
         compute_metrics=compute_metrics,
+        optimizers=(adamW, reduceLROnPlateau)
     )
 
     # Training

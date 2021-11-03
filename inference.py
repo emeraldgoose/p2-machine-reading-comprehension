@@ -89,32 +89,30 @@ def main():
     model = lstmOnRoberta.from_pretrained(model_args.model_name_or_path, config=config)
 
     # Using Elastic Search
-    datasets_1 = run_elastic_search(datasets, 1)
-    datasets_2 = run_elastic_search(datasets, 2)
-    datasets_3 = run_elastic_search(datasets, 3)
-    datasets_4 = run_elastic_search(datasets, 4)
-    datasets_5 = run_elastic_search(datasets, 5)
-    datasets_6 = run_elastic_search(datasets, 6)
-    datasets_7 = run_elastic_search(datasets, 7)
-    datasets_8 = run_elastic_search(datasets, 8)
-    datasets_9 = run_elastic_search(datasets, 9)
-    datasets_10 = run_elastic_search(datasets, 10)
+    # datasets_1 = run_elastic_search(datasets, 1)
+    # datasets_2 = run_elastic_search(datasets, 2)
+    # datasets_3 = run_elastic_search(datasets, 3)
+    # datasets_4 = run_elastic_search(datasets, 4)
+    # datasets_5 = run_elastic_search(datasets, 5)
+    # datasets_6 = run_elastic_search(datasets, 6)
+    # datasets_7 = run_elastic_search(datasets, 7)
+    # datasets_8 = run_elastic_search(datasets, 8)
+    # datasets_9 = run_elastic_search(datasets, 9)
+    # datasets_10 = run_elastic_search(datasets, 10)
 
-    # datasets = run_elastic_search(datasets)
+    datasets = run_elastic_search(datasets)
     # print(datasets['validation']['context'][0])
 
-    datasets = [datasets_1, datasets_2, datasets_3, datasets_4, datasets_5, datasets_6, datasets_7, datasets_8, datasets_9, datasets_10]
+    # datasets = [datasets_1, datasets_2, datasets_3, datasets_4, datasets_5, datasets_6, datasets_7, datasets_8, datasets_9, datasets_10]
 
     # eval or predict mrc model
-    for i in range(10):
-        run_mrc(data_args, training_args, model_args, datasets[i], f'{i+1}', tokenizer, model)
-    # run_mrc(data_args, training_args, model_args, datasets, tokenizer, model)
+    # for i in range(10):
+    #     run_mrc(data_args, training_args, model_args, datasets[i], f'{i+1}', tokenizer, model)
+    run_mrc(data_args, training_args, model_args, datasets, tokenizer, model)
 
 def run_elastic_search(
     datasets: datasets,
-    num: int,
-    data_path: str="../data",
-    context_path: str="wikipedia_documents.json",
+    # num: int,
 ) -> DatasetDict:
 
     # test question에 따라 문서를 불러온다
@@ -133,20 +131,14 @@ def run_elastic_search(
     #     total.append(tmp)
 
     for i in range(len(context_data)):
-        # context = ""
-        # for j in range(1,11): context += context_data[f'text{j}'].iloc[i]
-        # tmp = {
-        #     'context': context,
-        #     'id': context_data['id'].iloc[i],
-        #     'question': test_datasets['validation'][i]['question'],
-        # }
-        for j in range(10):
-            tmp = {
-                'context': context_data[f'text{j+1}'].iloc[i],
-                'id': context_data['id'].iloc[i],
-                'question': test_datasets['validation'][i]['question'],
-            }
-            total.append(tmp)
+        context = ""
+        for j in range(1,11): context += context_data[f'text{j}'].iloc[i]
+        tmp = {
+            'context': context,
+            'id': context_data['id'].iloc[i],
+            'question': test_datasets['validation'][i]['question'],
+        }
+        total.append(tmp)
     
     df = pd.DataFrame(total)
 
@@ -166,7 +158,7 @@ def run_mrc(
     training_args: TrainingArguments,
     model_args: ModelArguments,
     datasets: DatasetDict,
-    dataset_num,
+    # dataset_num,
     tokenizer,
     model,
 ) -> NoReturn:

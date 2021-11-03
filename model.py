@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torch.nn import LSTM, Linear, CrossEntropyLoss, Dropout, GELU
+from torch.nn import LSTM, Linear, CrossEntropyLoss, Dropout
 
 from transformers import RobertaModel, RobertaPreTrainedModel
 from transformers.modeling_outputs import QuestionAnsweringModelOutput
@@ -12,13 +12,13 @@ class lstmOnRoberta(RobertaPreTrainedModel):
         self.roberta = RobertaModel(config=config, add_pooling_layer=False)
         self.hidden_size = self.roberta.embeddings.word_embeddings.weight.data.shape[1]
 
-        self.fc = Linear(self.hidden_size, self.hidden_size)
+        self.fc = Linear(self.hidden_size, self.hidden_size * 2)
         
-        self.fc2 = Linear(self.hidden_size, self.hidden_size)
+        self.fc2 = Linear(self.hidden_size * 2, self.hidden_size)
 
         self.dense = Linear(self.hidden_size, config.num_labels)
 
-        self.dropout = Dropout(0.5)
+        self.dropout = Dropout(0.2)
 
         self.init_weights()
 
@@ -34,11 +34,11 @@ class lstmOnRoberta(RobertaPreTrainedModel):
 
         sequence_output = outputs[0]  # sequence = (batch, seq, hidden)
         
-        output = self.dropout(self.fc(sequence_output))
+        output = self.dropout(self.fc(sequence_output)) # output = (batch, seq, hidden)
         
-        output = self.dropout(self.fc2(output))
+        output = self.dropout(self.fc2(output)) # output = (batch, seq, hidden)
 
-        logits = self.dense(output)
+        logits = self.dense(output) # logits = (batch, seq, 2)
 
         start_logits, end_logits = logits.split(
             1, dim=-1
