@@ -7,8 +7,6 @@ import sys
 import torch
 import dataclasses
 from datasets import load_metric, load_from_disk, Dataset, DatasetDict
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.optim import AdamW, adamw
 
 from transformers import (
     Trainer,
@@ -27,7 +25,7 @@ from arguments import (
     DataTrainingArguments,
 )
 
-import tokenizerAndModel
+import modelList
 import make_dataset
 from postprocessing import postprocessor
 
@@ -54,10 +52,6 @@ def train(
     gc.collect()
     torch.cuda.empty_cache()
 
-    # optimizer, lr_scheduler
-    adamW = AdamW(model.parameters(),lr=1e-5,weight_decay=0.009)
-    reduceLROnPlateau = ReduceLROnPlateau(adamW, patience=3)
-
     # Trainer 초기화
     trainer = QuestionAnsweringTrainer(
         model=model,
@@ -69,7 +63,6 @@ def train(
         data_collator=data_collator,
         post_process_function=postprocessor(training_args, data_args, datasets),
         compute_metrics=compute_metrics,
-        optimizers=(adamW, reduceLROnPlateau)
     )
 
     # Training
@@ -118,7 +111,7 @@ def main(config):
 
     # set training arguments
     training_args = TrainingArguments(
-        output_dir="./models/train_dataset/",
+        output_dir=f"./models/train_dataset/{model_args.model_name_or_path}",
         report_to="wandb",
         overwrite_output_dir=True,
         per_device_train_batch_size=8,
@@ -136,7 +129,7 @@ def main(config):
     )
 
     data_args = DataTrainingArguments(
-        dataset_name="../data_v3/train_dataset",
+        dataset_name="../data_v2/train_dataset",
         overwrite_cache=False,
         preprocessing_num_workers=8,
         max_seq_length=config.max_seq_length,
@@ -160,7 +153,7 @@ def main(config):
     datasets = load_from_disk(data_args.dataset_name)
     print(datasets)
 
-    tokenizer, model = tokenizerAndModel.init(model_args=model_args)
+    tokenizer, model = modelList.init(model_args=model_args)
     wandb.watch(model)
     model.to(device)
 
@@ -207,7 +200,7 @@ if __name__ == "__main__":
     defaults = dict(
         learning_rate=1e-5,
         epochs=2,
-        weight_decay=0.009,
+        weight_decay=0.008,
         pad_to_max_length=True,
         max_answer_length=30,
         max_seq_length=200,

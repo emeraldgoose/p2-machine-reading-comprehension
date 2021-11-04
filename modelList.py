@@ -1,6 +1,5 @@
 from transformers import AutoConfig, AutoModelForQuestionAnswering, AutoTokenizer
-from transformers.utils.dummy_pt_objects import AutoModel
-from model import lstmOnRoberta
+from model import RobertaQA, BertQA
 
 
 def init(model_args):
@@ -20,7 +19,11 @@ def init(model_args):
     special_tokens_dict = {'additional_special_tokens': user_defined_symbols}
     tokenizer.add_special_tokens(special_tokens_dict)
 
-    model = lstmOnRoberta.from_pretrained(model_args.model_name_or_path, config=config)
+    if model_args.model_name_or_path == "klue/bert-base":
+        model = BertQA.from_pretrained(model_args.model_name_or_path, config=config)
+    elif model_args.model_name_or_path == "klue/roberta-large":
+        model = RobertaQA.from_pretrained(model_args.model_name_or_path, config=config)
+
     model.resize_token_embeddings(tokenizer.vocab_size + len(user_defined_symbols))
 
     return tokenizer, model
