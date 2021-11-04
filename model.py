@@ -1,41 +1,27 @@
 import torch
 import torch.nn as nn
-from torch.nn import LSTM, Linear, CrossEntropyLoss
+from torch.nn import functional as F
+from torch.nn import LSTM, Linear, CrossEntropyLoss, Dropout
 
-from transformers import AutoConfig, RobertaModel
+from transformers import RobertaModel, RobertaPreTrainedModel
 from transformers.modeling_outputs import QuestionAnsweringModelOutput
 
-
-class lstmOnRoberta(nn.Module):
-    def __init__(self, dropout=0.1):
-        super().__init__()
-        self.config = AutoConfig.from_pretrained("klue/roberta-large")
-        self.num_labels = self.config.num_labels
-
-        self.roberta = RobertaModel.from_pretrained(
-            "klue/roberta-large", config=self.config
-        )
+class lstmOnRoberta(RobertaPreTrainedModel):
+    """ lstm 없는 lstm 모델 """
+    def __init__(self, config):
+        super().__init__(config)
+        self.roberta = RobertaModel(config=config, add_pooling_layer=False)
         self.hidden_size = self.roberta.embeddings.word_embeddings.weight.data.shape[1]
 
-        self.lstm1 = LSTM(
-            input_size=self.hidden_size,
-            hidden_size=self.hidden_size,
-            num_layers=1,
-            dropout=dropout,
-            batch_first=True,
-            bidirectional=True,
-        )  # (batch, seq_length, 2*hidden_size)
+        self.fc = Linear(self.hidden_size, self.hidden_size * 2)
+        
+        self.fc2 = Linear(self.hidden_size * 2, self.hidden_size)
 
-        self.lstm2 = LSTM(
-            input_size=self.hidden_size,
-            hidden_size=self.hidden_size,
-            num_layers=1,
-            dropout=dropout,
-            batch_first=True,
-            bidirectional=True,
-        )
+        self.dense = Linear(self.hidden_size, config.num_labels)
 
-        self.fc = Linear(self.hidden_size * 4, self.num_labels)
+        self.dropout = Dropout(0.2)
+
+        self.init_weights()
 
     def forward(
         self,
@@ -47,25 +33,18 @@ class lstmOnRoberta(nn.Module):
 
         outputs = self.roberta(input_ids=input_ids, attention_mask=attention_mask)
 
-        sequence_output = outputs[0]  # sequence = (8, 384, 1024)
+        sequence_output = outputs[0]  # sequence = (batch, seq, hidden)
+        
+        output = self.dropout(self.fc(sequence_output)) # output = (batch, seq, hidden)
+        
+        output = self.dropout(self.fc2(output)) # output = (batch, seq, hidden)
 
-        start_pos_output, (hidden, cell) = self.lstm1(
-            sequence_output
-        )  # output = (8, 384, 2048), hidden = (4, 8, 1024), cell = (4, 8, 1024)
-
-        end_pos_output, (hidden2, cell2) = self.lstm2(
-            sequence_output, (hidden, cell)
-        )  # output = (8, 384, 2048)
-
-        output = torch.cat(
-            (start_pos_output, end_pos_output), dim=2
-        )  # output = (8, 384, 4096)
-
-        logits = self.fc(output)  # logits = (8, 384, 2)
+        logits = self.dense(output) # logits = (batch, seq, 2)
 
         start_logits, end_logits = logits.split(
             1, dim=-1
-        )  # start_logits, end_logits = (8, 384)
+        )  # start_logits, end_logits = (batch, seq)
+
         start_logits = start_logits.squeeze(-1).contiguous()
         end_logits = end_logits.squeeze(-1).contiguous()
 
@@ -76,7 +55,7 @@ class lstmOnRoberta(nn.Module):
             if len(end_positions.size()) > 1:
                 end_positions = end_positions.squeeze(-1)
 
-            ignored_index = start_logits.size(1)  # 384
+            ignored_index = start_logits.size(1)  # seq
             start_positions = start_positions.clamp(0, ignored_index)
             end_positions = end_positions.clamp(0, ignored_index)
 
@@ -89,51 +68,48 @@ class lstmOnRoberta(nn.Module):
             loss=total_loss, start_logits=start_logits, end_logits=end_logits,
         )
 
-class lstmOnRoberta2(nn.Module):
-    def __init__(self, training_args, dropout=0.1):
-        super().__init__()
-        self.training_args = training_args
-        self.config = AutoConfig.from_pretrained("klue/roberta-large")
-        self.num_labels = self.config.num_labels
 
-        self.roberta = RobertaModel.from_pretrained(
-            "klue/roberta-large", config=self.config
-        )
+class ConvModel(RobertaPreTrainedModel):
+    def __init__(self, config):
+        super().__init__(config)
+        self.roberta = RobertaModel(config=config, add_pooling_layer=False)
         self.hidden_size = self.roberta.embeddings.word_embeddings.weight.data.shape[1]
 
-        self.lstm = LSTM(
-            input_size=self.hidden_size,
-            hidden_size=self.hidden_size,
-            num_layers=2,
-            dropout=dropout,
-            batch_first=True,
-            bidirectional=True,
-        )  # (batch, seq_length, 2*hidden_size)
+        self.conv1d_layer1 = nn.Conv1d(self.hidden_size, 1024, kernel_size=1)
+        self.conv1d_layer3 = nn.Conv1d(self.hidden_size, 1024, kernel_size=3, padding=1)
+        self.conv1d_layer5 = nn.Conv1d(self.hidden_size, 1024, kernel_size=5, padding=2)
 
-        self.h0 = torch.randn(2, self.training_args.per_device_train_batch_size, self.hidden_size).cuda()
-        self.c0 = torch.randn(2, self.training_args.per_device_train_batch_size, self.hidden_size).cuda()
+        self.dropout = nn.Dropout(0.5)
 
-        self.fc = Linear(self.hidden_size * 2, self.num_labels)
+        self.dense = nn.Linear(1024 * 3, 2, bias=True)
+
+        self.init_weights()
 
     def forward(
-        self,
-        input_ids=None,
-        attention_mask=None,
-        start_positions=None,
-        end_positions=None,
+            self,
+            input_ids=None,
+            attention_mask=None,
+            start_positions=None,
+            end_positions=None,
     ):
-
         outputs = self.roberta(input_ids=input_ids, attention_mask=attention_mask)
 
-        sequence_output = outputs[0]  # sequence = (8, 384, 1024)
+        sequence_output = outputs[0]  # Convolution 연산을 위해 Transpose (B * hidden_size * max_seq_legth)
+        conv_input = sequence_output.transpose(1, 2)  # Conv 연산을 위한 Transpose (B * hidden_size * max_seq_length)
+        conv_output1 = F.relu(self.conv1d_layer1(conv_input))  # Conv연산의 결과 (B * num_conv_filter * max_seq_legth)
+        conv_output3 = F.relu(self.conv1d_layer3(conv_input))  # Conv연산의 결과 (B * num_conv_filter * max_seq_legth)
+        conv_output5 = F.relu(self.conv1d_layer5(conv_input))  # Conv연산의 결과 (B * num_conv_filter * max_seq_legth)
 
-        output, (hidden, cell) = self.lstm(sequence_output)
+        concat_output = torch.cat((conv_output1, conv_output3, conv_output5), dim=1)  # Concatenation (B * num_conv_filter x 3 * max_seq_legth)
+        concat_output = concat_output.transpose(1, 2)
+        concat_output = self.dropout(concat_output)
 
-        logits = self.fc(output)  # logits = (8, 384, 2)
+        logits = self.dense(concat_output)
 
         start_logits, end_logits = logits.split(
             1, dim=-1
-        )  # start_logits, end_logits = (8, 384)
+        )  # start_logits, end_logits = (batch, seq)
+
         start_logits = start_logits.squeeze(-1).contiguous()
         end_logits = end_logits.squeeze(-1).contiguous()
 
@@ -144,7 +120,7 @@ class lstmOnRoberta2(nn.Module):
             if len(end_positions.size()) > 1:
                 end_positions = end_positions.squeeze(-1)
 
-            ignored_index = start_logits.size(1)  # 384
+            ignored_index = start_logits.size(1)  # seq
             start_positions = start_positions.clamp(0, ignored_index)
             end_positions = end_positions.clamp(0, ignored_index)
 

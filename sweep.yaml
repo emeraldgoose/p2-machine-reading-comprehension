@@ -4,8 +4,8 @@ metric:
   goal: minimize
   name: eval/exact_match
 parameters:
-  ver:
-    values: ['original', 'ver_1', 'ver_2']
+  # ver:
+  #   values: ['original', 'ver_1', 'ver_2']
   learning_rate:
     values: [1e-5, 2e-5, 3e-5, 4e-5, 5e-5]
   num_train_epochs:
