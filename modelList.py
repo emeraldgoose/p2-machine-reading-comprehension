@@ -1,5 +1,5 @@
-from transformers import AutoConfig, AutoModelForQuestionAnswering, AutoTokenizer
-from model import RobertaQA, BertQA
+from transformers import AutoConfig, AutoTokenizer
+from model import RobertaQA, BertQA, ElectraQA
 
 
 def init(model_args):
@@ -23,6 +23,8 @@ def init(model_args):
         model = BertQA.from_pretrained(model_args.model_name_or_path, config=config)
     elif model_args.model_name_or_path == "klue/roberta-large":
         model = RobertaQA.from_pretrained(model_args.model_name_or_path, config=config)
+    elif model_args.model_name_or_path == "monologg/koelectra-base-v3-discriminator":
+        model = ElectraQA.from_pretrained(model_args.model_name_or_path, config=config)
 
     model.resize_token_embeddings(tokenizer.vocab_size + len(user_defined_symbols))
 
