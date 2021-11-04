@@ -204,12 +204,12 @@ def main(config):
 
 if __name__ == "__main__":
     defaults = dict(
-        learning_rate=1e-5,
-        epochs=2,
+        learning_rate=8e-6,
+        epochs=1,
         weight_decay=0.009,
         pad_to_max_length=True,
-        max_answer_length=30,
-        max_seq_length=200,
+        max_answer_length=20,
+        max_seq_length=100,
     )
     wandb.init(config=defaults)
     config = wandb.config

@@ -121,6 +121,9 @@ def run_elastic_search(
             'question': test_datasets['validation'][i]['question'],
         }
         total.append(tmp)
+        if i == 5:
+            break
+
     
     df = pd.DataFrame(total)
 
