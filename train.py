@@ -1,15 +1,12 @@
-import gc
 import logging
 import os
-from re import L
 import sys
+import gc
 
 import torch
-import dataclasses
-from datasets import load_metric, load_from_disk, Dataset, DatasetDict
+from datasets import load_metric, load_from_disk
 
 from transformers import (
-    Trainer,
     DataCollatorWithPadding,
     EvalPrediction,
     HfArgumentParser,
@@ -17,7 +14,7 @@ from transformers import (
     set_seed,
 )
 
-from utils_qa import postprocess_qa_predictions, check_no_error
+from utils_qa import check_no_error
 from trainer_qa import QuestionAnsweringTrainer
 
 from arguments import (
@@ -72,6 +69,7 @@ def train(
         checkpoint = model_args.model_name_or_path
     else:
         checkpoint = None
+
     train_result = trainer.train(resume_from_checkpoint=checkpoint)
     trainer.save_model()  # Saves the tokenizer too for easy upload
 
@@ -97,6 +95,7 @@ def train(
 
 
 def main(config):
+    # set cuda
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # 가능한 arguments 들은 ./arguments.py 나 transformer package 안의 src/transformers/training_args.py 에서 확인 가능합니다.
@@ -110,6 +109,7 @@ def main(config):
     )
 
     # set training arguments
+    # eval_step마다 validation set을 이용해 측정된 EM을 기준으로 가장 좋은 모델이 저장됩니다
     training_args = TrainingArguments(
         output_dir=f"./models/train_dataset/{model_args.model_name_or_path}",
         report_to="wandb",
@@ -128,15 +128,6 @@ def main(config):
         metric_for_best_model="exact_match",
     )
 
-    data_args = DataTrainingArguments(
-        dataset_name="../data_v2/train_dataset",
-        overwrite_cache=False,
-        preprocessing_num_workers=8,
-        max_seq_length=config.max_seq_length,
-        pad_to_max_length=config.pad_to_max_length,
-        max_answer_length=config.max_answer_length,
-    )
-
     # logging 설정
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s -    %(message)s",
@@ -150,11 +141,15 @@ def main(config):
     # 모델을 초기화하기 전에 난수를 고정합니다.
     set_seed(42)
 
+    # load dataset
     datasets = load_from_disk(data_args.dataset_name)
     print(datasets)
 
+    # load tokenizer, model
     tokenizer, model = modelList.init(model_args=model_args)
+
     wandb.watch(model)
+
     model.to(device)
 
     # 오류가 있는지 확인합니다.
@@ -197,14 +192,11 @@ def main(config):
 
 
 if __name__ == "__main__":
-    defaults = dict(
-        learning_rate=1e-5,
-        epochs=2,
-        weight_decay=0.008,
-        pad_to_max_length=True,
-        max_answer_length=30,
-        max_seq_length=200,
-    )
+    # training arguments의 hyperparameters
+    defaults = dict(learning_rate=1e-5, epochs=2, weight_decay=0.009)
+
     wandb.init(config=defaults)
+
     config = wandb.config
+
     main(config)

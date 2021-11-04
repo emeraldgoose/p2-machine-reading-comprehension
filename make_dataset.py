@@ -2,7 +2,11 @@ from preprocessing import eval_preprocessor, train_preprocessor
 
 
 def make_dataset(data_args, datasets, tokenizer, max_seq_length):
+    """
+        dataset을 받아 train dataset과 eval dataset을 만들어 리턴하는 함수입니다
+    """
 
+    # train dataset
     train_column_names = datasets["train"].column_names
 
     train_question_column_name = (
@@ -21,7 +25,7 @@ def make_dataset(data_args, datasets, tokenizer, max_seq_length):
 
     train_dataset = datasets["train"]
 
-    # dataset에서 train feature를 생성합니다.
+    # Train feature 생성
     train_dataset = train_dataset.map(
         train_preprocessor(
             tokenizer,
@@ -38,6 +42,7 @@ def make_dataset(data_args, datasets, tokenizer, max_seq_length):
         load_from_cache_file=not data_args.overwrite_cache,
     )
 
+    # eval dataset
     eval_column_names = datasets["validation"].column_names
 
     eval_question_column_name = (

@@ -1,7 +1,19 @@
+"""
+    huggingface를 참고하여 Roberta, Bert, Electra를 베이스로 하여 MLP를 쌓은 모델들을 정의한 코드입니다
+"""
+
 from torch.nn import Linear, CrossEntropyLoss, Dropout
 
-from transformers import RobertaModel, RobertaPreTrainedModel, BertPreTrainedModel, BertModel, ElectraModel, ElectraPreTrainedModel
+from transformers import (
+    RobertaModel,
+    RobertaPreTrainedModel,
+    BertModel,
+    BertPreTrainedModel,
+    ElectraModel,
+    ElectraPreTrainedModel,
+)
 from transformers.modeling_outputs import QuestionAnsweringModelOutput
+
 
 class RobertaQA(RobertaPreTrainedModel):
     def __init__(self, config):
@@ -10,7 +22,7 @@ class RobertaQA(RobertaPreTrainedModel):
         self.hidden_size = self.roberta.embeddings.word_embeddings.weight.data.shape[1]
 
         self.fc = Linear(self.hidden_size, self.hidden_size * 2)
-        
+
         self.fc2 = Linear(self.hidden_size * 2, self.hidden_size)
 
         self.dense = Linear(self.hidden_size, config.num_labels)
@@ -30,12 +42,12 @@ class RobertaQA(RobertaPreTrainedModel):
         outputs = self.roberta(input_ids=input_ids, attention_mask=attention_mask)
 
         sequence_output = outputs[0]  # sequence = (batch, seq, hidden)
-        
-        output = self.dropout(self.fc(sequence_output)) # output = (batch, seq, hidden)
-        
-        output = self.dropout(self.fc2(output)) # output = (batch, seq, hidden)
 
-        logits = self.dense(output) # logits = (batch, seq, 2)
+        output = self.dropout(self.fc(sequence_output))  # output = (batch, seq, hidden)
+
+        output = self.dropout(self.fc2(output))  # output = (batch, seq, hidden)
+
+        logits = self.dense(output)  # logits = (batch, seq, 2)
 
         start_logits, end_logits = logits.split(
             1, dim=-1
@@ -72,7 +84,7 @@ class BertQA(BertPreTrainedModel):
         self.hidden_size = self.bert.embeddings.word_embeddings.weight.data.shape[1]
 
         self.fc = Linear(self.hidden_size, self.hidden_size * 2)
-        
+
         self.fc2 = Linear(self.hidden_size * 2, self.hidden_size)
 
         self.dense = Linear(self.hidden_size, config.num_labels)
@@ -80,18 +92,29 @@ class BertQA(BertPreTrainedModel):
         self.dropout = Dropout(0.2)
 
         self.init_weights()
-        
-    def forward(self, input_ids, attention_mask=None, token_type_ids=None, start_positions=None, end_positions=None):
-        
-        outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
+
+    def forward(
+        self,
+        input_ids,
+        attention_mask=None,
+        token_type_ids=None,
+        start_positions=None,
+        end_positions=None,
+    ):
+
+        outputs = self.bert(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+        )
 
         sequence_output = outputs[0]  # sequence = (batch, seq, hidden)
-        
-        output = self.dropout(self.fc(sequence_output)) # output = (batch, seq, hidden)
-        
-        output = self.dropout(self.fc2(output)) # output = (batch, seq, hidden)
 
-        logits = self.dense(output) # logits = (batch, seq, 2)
+        output = self.dropout(self.fc(sequence_output))  # output = (batch, seq, hidden)
+
+        output = self.dropout(self.fc2(output))  # output = (batch, seq, hidden)
+
+        logits = self.dense(output)  # logits = (batch, seq, 2)
 
         start_logits, end_logits = logits.split(
             1, dim=-1
@@ -128,7 +151,7 @@ class ElectraQA(ElectraPreTrainedModel):
         self.hidden_size = self.electra.embeddings.word_embeddings.weight.data.shape[1]
 
         self.fc = Linear(self.hidden_size, self.hidden_size * 2)
-        
+
         self.fc2 = Linear(self.hidden_size * 2, self.hidden_size)
 
         self.dense = Linear(self.hidden_size, config.num_labels)
@@ -137,17 +160,26 @@ class ElectraQA(ElectraPreTrainedModel):
 
         self.init_weights()
 
-    def forward(self, input_ids, attention_mask=None, token_type_ids=None, start_positions=None, end_positions=None):
-        
-        outputs = self.electra(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
+    def forward(
+        self,
+        input_ids,
+        attention_mask=None,
+        token_type_ids=None,
+        start_positions=None,
+        end_positions=None,
+    ):
+
+        outputs = self.electra(
+            input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids
+        )
 
         sequence_output = outputs[0]  # sequence = (batch, seq, hidden)
-        
-        output = self.dropout(self.fc(sequence_output)) # output = (batch, seq, hidden)
-        
-        output = self.dropout(self.fc2(output)) # output = (batch, seq, hidden)
 
-        logits = self.dense(output) # logits = (batch, seq, 2)
+        output = self.dropout(self.fc(sequence_output))  # output = (batch, seq, hidden)
+
+        output = self.dropout(self.fc2(output))  # output = (batch, seq, hidden)
+
+        logits = self.dense(output)  # logits = (batch, seq, 2)
 
         start_logits, end_logits = logits.split(
             1, dim=-1

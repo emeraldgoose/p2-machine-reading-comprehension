@@ -61,6 +61,8 @@ class QuestionAnsweringTrainer(Trainer):
                 eval_examples, eval_dataset, output.predictions, self.args
             )
             metrics = self.compute_metrics(eval_preds)
+
+            # eval step마다 측정하기 위해 metric이름앞에 eval_이라는 prefix를 붙여야 합니다
             new_metrics = dict(
                 eval_exact_match=metrics["exact_match"], eval_f1=metrics["f1"]
             )

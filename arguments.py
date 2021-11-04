@@ -1,5 +1,5 @@
-from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass, field
+from typing import Optional
 
 
 @dataclass
@@ -9,7 +9,7 @@ class ModelArguments:
     """
 
     model_name_or_path: str = field(
-        default="klue/bert-base",
+        default="monologg/koelectra-base-v3-discriminator",
         metadata={
             "help": "Path to pretrained model or model identifier from huggingface.co/models"
         },
@@ -27,6 +27,7 @@ class ModelArguments:
         },
     )
 
+
 @dataclass
 class DataTrainingArguments:
     """
@@ -34,11 +35,11 @@ class DataTrainingArguments:
     """
 
     dataset_name: Optional[str] = field(
-        default="../data/train_dataset",
+        default="../data_v2/train_dataset",
         metadata={"help": "The name of the dataset to use."},
     )
     overwrite_cache: bool = field(
-        default=True,
+        default=False,
         metadata={"help": "Overwrite the cached training and evaluation sets"},
     )
     preprocessing_num_workers: Optional[int] = field(
@@ -66,27 +67,4 @@ class DataTrainingArguments:
             "help": "The maximum length of an answer that can be generated. This is needed because the start "
             "and end predictions are not conditioned on one another."
         },
-    )
-    # 아래부터 retriever 영역
-    doc_stride: int = field(
-        default=128,
-        metadata={
-            "help": "When splitting up a long document into chunks, how much stride to take between chunks."
-        },
-    )
-    eval_retrieval: bool = field(
-        default=True,
-        metadata={"help": "Whether to run passage retrieval using sparse embedding."},
-    )
-    num_clusters: int = field(
-        default=128, metadata={"help": "Define how many clusters to use for faiss."}
-    )
-    top_k_retrieval: int = field(
-        default=1,
-        metadata={
-            "help": "Define how many top-k passages to retrieve based on similarity."
-        },
-    )
-    use_faiss: bool = field(
-        default=True, metadata={"help": "Whether to build with faiss"}
     )

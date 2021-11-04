@@ -1,33 +1,22 @@
-"""
-Open-Domain Question Answering 을 수행하는 inference 코드 입니다.
-
-대부분의 로직은 train.py 와 비슷하나 retrieval, predict 부분이 추가되어 있습니다.
-"""
-
-import os
-import json
 import logging
 import sys
-from typing import Callable, List, Dict, NoReturn, Tuple
+from typing import List, Dict, NoReturn, Tuple
 import datasets
 from datasets import dataset_dict
 
 import pandas as pd
 import numpy as np
 
-from tqdm import tqdm
-
 from datasets import (
     load_metric,
     load_from_disk,
-    Sequence,
     Value,
     Features,
     Dataset,
     DatasetDict,
 )
 
-from transformers import AutoConfig, AutoModelForQuestionAnswering, AutoTokenizer
+from transformers import AutoConfig, AutoTokenizer
 
 from transformers import (
     DataCollatorWithPadding,
@@ -39,7 +28,7 @@ from transformers import (
 
 from utils_qa import postprocess_qa_predictions, check_no_error
 from trainer_qa import QuestionAnsweringTrainer
-from model import lstmOnRoberta
+from model import RobertaQA, BertQA, ElectraQA
 
 from arguments import (
     ModelArguments,
@@ -79,67 +68,50 @@ def main():
     # 모델을 초기화하기 전에 난수를 고정합니다.
     set_seed(training_args.seed)
 
+    # load datasets
     datasets = load_from_disk(data_args.dataset_name)
 
+    # load config, tokenizer, model
     config = AutoConfig.from_pretrained(model_args.model_name_or_path)
     tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path)
-    
-    # model = mlpOnRoberta(config=config)
-    # model = AutoModelForQuestionAnswering.from_pretrained(model_args.model_name_or_path, config=config)
-    model = lstmOnRoberta.from_pretrained(model_args.model_name_or_path, config=config)
 
-    # Using Elastic Search
-    # datasets_1 = run_elastic_search(datasets, 1)
-    # datasets_2 = run_elastic_search(datasets, 2)
-    # datasets_3 = run_elastic_search(datasets, 3)
-    # datasets_4 = run_elastic_search(datasets, 4)
-    # datasets_5 = run_elastic_search(datasets, 5)
-    # datasets_6 = run_elastic_search(datasets, 6)
-    # datasets_7 = run_elastic_search(datasets, 7)
-    # datasets_8 = run_elastic_search(datasets, 8)
-    # datasets_9 = run_elastic_search(datasets, 9)
-    # datasets_10 = run_elastic_search(datasets, 10)
+    # model_args의 model_name_or_path마다 지정된 모델을 불러옵니다
+    if "roberta-large" in model_args.model_name_or_path:
+        model = RobertaQA.from_pretrained(model_args.model_name_or_path, config=config)
+    elif "bert-base" in model_args.model_name_or_path:
+        model = BertQA.from_pretrained(model_args.model_name_or_path, config=config)
+    elif "electra" in model_args.model_name_or_path:
+        model = ElectraQA.from_pretrained(model_args.model_name_or_path, config=config)
 
+    # 미리 불러온 위키피디아 문서와 쿼리를 이어 붙입니다
     datasets = run_elastic_search(datasets)
-    # print(datasets['validation']['context'][0])
 
-    # datasets = [datasets_1, datasets_2, datasets_3, datasets_4, datasets_5, datasets_6, datasets_7, datasets_8, datasets_9, datasets_10]
-
-    # eval or predict mrc model
-    # for i in range(10):
-    #     run_mrc(data_args, training_args, model_args, datasets[i], f'{i+1}', tokenizer, model)
+    # run prediction code
     run_mrc(data_args, training_args, model_args, datasets, tokenizer, model)
 
-def run_elastic_search(
-    datasets: datasets,
-    # num: int,
-) -> DatasetDict:
+
+def run_elastic_search(datasets: datasets,) -> DatasetDict:
 
     # test question에 따라 문서를 불러온다
-    test_datasets = load_from_disk('/opt/ml/data/test_dataset')
+    test_datasets = load_from_disk("/opt/ml/data_v2/test_dataset")
 
     total = []
-    
-    context_data = pd.read_csv('add_context_test_dataset.csv')
 
-    # for i in range(len(context_data)):
-    #     tmp = {
-    #         'context': context_data[f'text{num}'].iloc[i],
-    #         'id': context_data['id'].iloc[i],
-    #         'question': test_datasets['validation'][i]['question'],
-    #     }
-    #     total.append(tmp)
+    # wikipedia 문서를 쿼리마다 미리 불러온 csv 파일입니다
+    context_data = pd.read_csv("add_context_test_dataset.csv")
 
+    # 각 쿼리마다 10개의 문서를 모두 concat하여 context column에 저장합니다
     for i in range(len(context_data)):
         context = ""
-        for j in range(1,11): context += context_data[f'text{j}'].iloc[i]
+        for j in range(1, 11):
+            context += context_data[f"text{j}"].iloc[i]
         tmp = {
-            'context': context,
-            'id': context_data['id'].iloc[i],
-            'question': test_datasets['validation'][i]['question'],
+            "context": context,
+            "id": context_data["id"].iloc[i],
+            "question": test_datasets["validation"][i]["question"],
         }
         total.append(tmp)
-    
+
     df = pd.DataFrame(total)
 
     f = Features(
@@ -153,12 +125,12 @@ def run_elastic_search(
     datasets = DatasetDict({"validation": Dataset.from_pandas(df, features=f)})
     return datasets
 
+
 def run_mrc(
     data_args: DataTrainingArguments,
     training_args: TrainingArguments,
     model_args: ModelArguments,
     datasets: DatasetDict,
-    # dataset_num,
     tokenizer,
     model,
 ) -> NoReturn:
@@ -236,6 +208,14 @@ def run_mrc(
         tokenizer, pad_to_multiple_of=8 if training_args.fp16 else None
     )
 
+    # 파일을 저장할 때 뒤에 모델명이 붙도록 하기 위해 prefix를 정의합니다
+    if "roberta-large" in model_args.model_name_or_path:
+        prefix = "roberta"
+    elif "bert-base" in model_args.model_name_or_path:
+        prefix = "bert"
+    elif "electra" in model_args.model_name_or_path:
+        prefix = "electra"
+
     # Post-processing:
     def post_processing_function(
         examples,
@@ -244,13 +224,14 @@ def run_mrc(
         training_args: TrainingArguments,
     ) -> EvalPrediction:
         # Post-processing: start logits과 end logits을 original context의 정답과 match시킵니다.
+        # prefix를 통해 prediction한 파일의 뒤에 _{model_name}이 붙도록 합니다
         predictions = postprocess_qa_predictions(
             examples=examples,
             features=features,
             predictions=predictions,
             max_answer_length=data_args.max_answer_length,
             output_dir=training_args.output_dir,
-            # prefix=dataset_num
+            prefix=prefix,
         )
         # Metric을 구할 수 있도록 Format을 맞춰줍니다.
         formatted_predictions = [

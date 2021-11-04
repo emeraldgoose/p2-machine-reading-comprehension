@@ -1,5 +1,7 @@
-import copy
-from os import truncate
+"""
+    train dataset의 전처리와 eval dataset의 전처리를 담당하는 함수를 리턴하는 함수들입니다.
+    train.py의 코드를 분리하기 위해 작성되었습니다.
+"""
 
 
 def train_preprocessor(
