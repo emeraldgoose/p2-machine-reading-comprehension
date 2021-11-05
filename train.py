@@ -199,17 +199,6 @@ if __name__ == "__main__":
 
     wandb.agent(entity="", project="", sweep_id="")
 
-if __name__ == "__main__":
-    # training arguments의 hyperparameters
-    # wandb sweep을 활성화하면 sweep.yaml 설정에 따라 Fine tuning을 진행합니다
-    defaults = dict(learning_rate=1e-5, epochs=2, weight_decay=0.009)
-
-    wandb.init(
-        config=defaults, project="", entity="", name="",
-    )
-
-    wandb.agent(entity="", project="", sweep_id="")
-
     config = wandb.config
 
     main(config)
