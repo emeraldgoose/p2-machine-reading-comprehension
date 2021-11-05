@@ -13,7 +13,7 @@ def main():
     with open(path, "r") as f:
         wiki = json.load(f)
 
-    # wikipedia 문서 앞에 !!{title}!!를 삽입해 엘라스틱서치가 좀 더 잘 찾을 수 있도록 합니다
+    # wikipedia 문서 앞에 "!!{title}!!"를 삽입해 엘라스틱서치가 좀 더 잘 찾을 수 있도록 합니다
     for i in range(len(wiki)):
         context = wiki[f"{i}"]["text"]
         context = "!!" + wiki[f"{i}"]["title"] + "!!" + context
@@ -82,7 +82,7 @@ def main():
 
     # 조회된 모든 문서를 DataFrame형태로 변환하고 csv파일로 저장합니다
     df = pd.DataFrame(total)
-    df.to_csv("../add_context_test_dataset.csv")
+    df.to_csv("add_context_test_dataset.csv")
 
 
 if __name__ == "__main__":

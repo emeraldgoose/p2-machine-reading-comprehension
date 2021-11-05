@@ -104,9 +104,7 @@ def main(config):
     parser = HfArgumentParser(
         (ModelArguments, DataTrainingArguments, TrainingArguments)
     )
-    model_args, data_args, training_args = parser.parse_args_into_dataclasses(
-        args_filename="do_train_arguments.txt"
-    )
+    model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
     # set training arguments
     # eval_step마다 validation set을 이용해 측정된 EM을 기준으로 가장 좋은 모델이 저장됩니다

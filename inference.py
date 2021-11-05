@@ -46,9 +46,7 @@ def main():
     parser = HfArgumentParser(
         (ModelArguments, DataTrainingArguments, TrainingArguments)
     )
-    model_args, data_args, training_args = parser.parse_args_into_dataclasses(
-        args_filename="inference_arguments.txt"
-    )
+    model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
     training_args.do_train = True
 

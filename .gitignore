@@ -4,5 +4,3 @@ __pycache__
 models
 outputs
 .ipynb_checkpoints
-data
-add_context_test_dataset.csv
