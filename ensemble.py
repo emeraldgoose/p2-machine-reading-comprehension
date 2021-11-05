@@ -6,13 +6,13 @@ def main():
     """
         model.py에 정의된 RobertaQA, BertQA, ElectraQA에 대해 inference를 진행한 결과를 가지고 앙상블을 시도합니다.
     """
-    with open("../outputs/test_dataset/nbest_predictions_roberta.json") as f:
+    with open("./outputs/test_dataset/nbest_predictions_roberta.json") as f:
         roberta = json.load(f)
 
-    with open("../outputs/test_dataset/nbest_predictions_bert.json") as f:
+    with open("./outputs/test_dataset/nbest_predictions_bert.json") as f:
         bert = json.load(f)
 
-    with open("../outputs/test_dataset/nbest_predictions_electra.json") as f:
+    with open("./outputs/test_dataset/nbest_predictions_electra.json") as f:
         electra = json.load(f)
 
     query_id = list(roberta.keys())
@@ -66,7 +66,7 @@ def main():
 
     # 결과를 prediction.json으로 저장합니다
     with open(
-        "../outputs/test_dataset/predictions.json", "w", encoding="utf-8"
+        "./outputs/test_dataset/predictions.json", "w", encoding="utf-8"
     ) as writer:
         writer.write(json.dumps(dic, indent=4, ensure_ascii=False) + "\n")
 
