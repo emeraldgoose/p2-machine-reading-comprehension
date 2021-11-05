@@ -1,5 +1,5 @@
 from transformers import AutoConfig, AutoTokenizer
-from model import RobertaQA, BertQA, ElectraQA
+from model import RobertaQA, BertQA, ElectraQA, Conv1d
 
 
 def init(model_args):
@@ -27,6 +27,8 @@ def init(model_args):
         model = BertQA.from_pretrained(model_args.model_name_or_path, config=config)
     elif model_args.model_name_or_path == "klue/roberta-large":
         model = RobertaQA.from_pretrained(model_args.model_name_or_path, config=config)
+        # Conv-1d 모델을 사용하려면 위 코드를 주석 처리하고 아래 코드를 주석 해제 해주세요
+        # model = RobertaQA.from_pretrained(model_args.model_name_or_path, config=config)
     elif model_args.model_name_or_path == "monologg/koelectra-base-v3-discriminator":
         model = ElectraQA.from_pretrained(model_args.model_name_or_path, config=config)
 
