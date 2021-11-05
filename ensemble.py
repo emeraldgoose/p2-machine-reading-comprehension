@@ -32,7 +32,7 @@ def main():
         electra_prob = electra_[0]["probability"]
 
         # 동일 표를 받게 될 경우 총 각 문서마다 가장 높은 확률을 답변 중 가장 확률이 높은 답변을 채택합니다.
-        #
+        # 그렇지 않은 경우 다수의 표를 받은 답변이 채택됩니다.
         pq = [
             (-roberta_prob, roberta_text),
             (-bert_prob, bert_text),
@@ -46,7 +46,7 @@ def main():
         if roberta_text not in m:
             m[roberta_text] = 1
         else:
-            m[roberta_text] += 1 * 2
+            m[roberta_text] += 1
 
         if bert_text not in m:
             m[bert_text] = 1
@@ -56,7 +56,7 @@ def main():
         if electra_text not in m:
             m[electra_text] = 1
         else:
-            m[electra_text] += 1 * 1.5
+            m[electra_text] += 1
 
         if len(m) == 3:
             dic[id] = text
