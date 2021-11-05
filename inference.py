@@ -30,7 +30,7 @@ from utils_qa import postprocess_qa_predictions, check_no_error
 from trainer_qa import QuestionAnsweringTrainer
 from model import RobertaQA, BertQA, ElectraQA
 
-from code.arguments import (
+from arguments import (
     ModelArguments,
     DataTrainingArguments,
 )

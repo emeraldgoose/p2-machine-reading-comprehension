@@ -3,6 +3,7 @@ import os
 import sys
 import gc
 
+import torch
 from datasets import load_metric, load_from_disk
 
 from transformers import (
