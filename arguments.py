@@ -9,7 +9,7 @@ class ModelArguments:
     """
 
     model_name_or_path: str = field(
-        default="monologg/koelectra-base-v3-discriminator",
+        default="klue/roberta-large",
         metadata={
             "help": "Path to pretrained model or model identifier from huggingface.co/models"
         },
@@ -66,5 +66,11 @@ class DataTrainingArguments:
         metadata={
             "help": "The maximum length of an answer that can be generated. This is needed because the start "
             "and end predictions are not conditioned on one another."
+        },
+    )
+    doc_stride: int = field(
+        default=128,
+        metadata={
+            "help": "When splitting up a long document into chunks, how much stride to take between chunks."
         },
     )

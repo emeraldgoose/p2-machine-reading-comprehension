@@ -51,9 +51,6 @@ def make_dataset(data_args, datasets, tokenizer, max_seq_length):
     eval_context_column_name = (
         "context" if "context" in eval_column_names else eval_column_names[1]
     )
-    eval_answer_column_name = (
-        "answers" if "answers" in eval_column_names else eval_column_names[2]
-    )
 
     eval_dataset = datasets["validation"]
 
@@ -66,7 +63,6 @@ def make_dataset(data_args, datasets, tokenizer, max_seq_length):
             pad_on_right,
             eval_question_column_name,
             eval_context_column_name,
-            eval_answer_column_name,
         ),
         batched=True,
         num_proc=data_args.preprocessing_num_workers,

@@ -58,7 +58,7 @@ def train(
         eval_examples=datasets["validation"],
         tokenizer=tokenizer,
         data_collator=data_collator,
-        post_process_function=postprocessor(training_args, data_args, datasets),
+        post_process_function=postprocessor(data_args, datasets),
         compute_metrics=compute_metrics,
     )
 
@@ -120,8 +120,8 @@ def main(config):
         logging_steps=10,
         save_steps=100,
         eval_steps=100,
-        evaluation_strategy="steps",
         save_total_limit=5,
+        evaluation_strategy="steps",
         load_best_model_at_end=True,
         metric_for_best_model="exact_match",
     )
@@ -191,6 +191,7 @@ def main(config):
 
 if __name__ == "__main__":
     # training arguments의 hyperparameters
+    # wandb sweep을 활성화하면 sweep.yaml 설정에 따라 Fine tuning을 진행합니다
     defaults = dict(learning_rate=1e-5, epochs=2, weight_decay=0.009)
 
     wandb.init(config=defaults)

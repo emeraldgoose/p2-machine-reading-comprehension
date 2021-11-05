@@ -1,12 +1,13 @@
+"""
+    함수 post_processing_function을 리턴하는 함수입니다.
+    train.py의 코드를 분리하기 위해 작성되었습니다.
+"""
+
 from utils_qa import postprocess_qa_predictions
 from transformers import EvalPrediction
 
 
-def postprocessor(training_args, data_args, datasets):
-    """
-        함수 post_processing_function을 리턴하는 함수입니다.
-        train.py의 코드를 분리하기 위해 작성되었습니다.
-    """
+def postprocessor(data_args, datasets):
     column_names = datasets["validation"].column_names
     answer_column_name = "answers" if "answers" in column_names else column_names[2]
 
