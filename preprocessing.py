@@ -1,3 +1,9 @@
+"""
+    train dataset의 전처리와 eval dataset의 전처리를 담당하는 함수를 리턴하는 함수들입니다.
+    train.py의 코드를 분리하기 위해 작성되었습니다.
+"""
+
+
 def train_preprocessor(
     tokenizer,
     data_args,
@@ -14,17 +20,18 @@ def train_preprocessor(
         tokenized_examples = tokenizer(
             examples[question_column_name if pad_on_right else context_column_name],
             examples[context_column_name if pad_on_right else question_column_name],
-            truncation="only_second" if pad_on_right else "only_first",
+            truncation=True,
             max_length=max_seq_length,
             stride=data_args.doc_stride,
             return_overflowing_tokens=True,
             return_offsets_mapping=True,
-            # return_token_type_ids=False, # roberta모델을 사용할 경우 False, bert를 사용할 경우 True로 표기해야합니다.
+            return_token_type_ids=False,  # roberta모델을 사용할 경우 False, bert를 사용할 경우 True로 표기해야합니다.
             padding="max_length" if data_args.pad_to_max_length else False,
         )
 
         # 길이가 긴 context가 등장할 경우 truncate를 진행해야하므로, 해당 데이터셋을 찾을 수 있도록 mapping 가능한 값이 필요합니다.
         sample_mapping = tokenized_examples.pop("overflow_to_sample_mapping")
+
         # token의 캐릭터 단위 position를 찾을 수 있도록 offset mapping을 사용합니다.
         # start_positions과 end_positions을 찾는데 도움을 줄 수 있습니다.
         offset_mapping = tokenized_examples.pop("offset_mapping")
@@ -95,7 +102,6 @@ def eval_preprocessor(
     pad_on_right,
     question_column_name,
     context_column_name,
-    answer_column_name,
 ):
     # Validation preprocessing
     def prepare_validation_features(examples):
@@ -109,7 +115,7 @@ def eval_preprocessor(
             stride=data_args.doc_stride,
             return_overflowing_tokens=True,
             return_offsets_mapping=True,
-            # return_token_type_ids=False, # roberta모델을 사용할 경우 False, bert를 사용할 경우 True로 표기해야합니다.
+            return_token_type_ids=True,  # roberta모델을 사용할 경우 False, bert를 사용할 경우 True로 표기해야합니다.
             padding="max_length" if data_args.pad_to_max_length else False,
         )
 

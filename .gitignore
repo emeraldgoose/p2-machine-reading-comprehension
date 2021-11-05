@@ -1,7 +1,5 @@
-install
 wandb
 __pycache__
 models
 outputs
-data/
-huggingface_datasets_upload.ipynb
+.ipynb_checkpoints

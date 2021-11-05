@@ -1,27 +1,22 @@
-"""
-Open-Domain Question Answering 을 수행하는 inference 코드 입니다.
-
-대부분의 로직은 train.py 와 비슷하나 retrieval, predict 부분이 추가되어 있습니다.
-"""
-
-
 import logging
 import sys
-from typing import Callable, List, Dict, NoReturn, Tuple
+from typing import List, Dict, NoReturn, Tuple
+import datasets
+from datasets import dataset_dict
 
+import pandas as pd
 import numpy as np
 
 from datasets import (
     load_metric,
     load_from_disk,
-    Sequence,
     Value,
     Features,
     Dataset,
     DatasetDict,
 )
 
-from transformers import AutoConfig, AutoModelForQuestionAnswering, AutoTokenizer
+from transformers import AutoConfig, AutoTokenizer
 
 from transformers import (
     DataCollatorWithPadding,
@@ -33,7 +28,7 @@ from transformers import (
 
 from utils_qa import postprocess_qa_predictions, check_no_error
 from trainer_qa import QuestionAnsweringTrainer
-from retrieval import SparseRetrieval
+from model import RobertaQA, BertQA, ElectraQA
 
 from code.arguments import (
     ModelArguments,
@@ -71,92 +66,60 @@ def main():
     # 모델을 초기화하기 전에 난수를 고정합니다.
     set_seed(training_args.seed)
 
+    # load datasets
     datasets = load_from_disk(data_args.dataset_name)
-    print(datasets)
 
-    # AutoConfig를 이용하여 pretrained model 과 tokenizer를 불러옵니다.
-    # argument로 원하는 모델 이름을 설정하면 옵션을 바꿀 수 있습니다.
-    config = AutoConfig.from_pretrained(
-        model_args.config_name
-        if model_args.config_name
-        else model_args.model_name_or_path,
+    # load config, tokenizer, model
+    config = AutoConfig.from_pretrained(model_args.model_name_or_path)
+    tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path)
+
+    # model_args의 model_name_or_path마다 지정된 모델을 불러옵니다
+    if "roberta-large" in model_args.model_name_or_path:
+        model = RobertaQA.from_pretrained(model_args.model_name_or_path, config=config)
+    elif "bert-base" in model_args.model_name_or_path:
+        model = BertQA.from_pretrained(model_args.model_name_or_path, config=config)
+    elif "electra" in model_args.model_name_or_path:
+        model = ElectraQA.from_pretrained(model_args.model_name_or_path, config=config)
+
+    # 미리 불러온 위키피디아 문서와 쿼리를 이어 붙입니다
+    datasets = run_elastic_search(datasets)
+
+    # run prediction code
+    run_mrc(data_args, training_args, model_args, datasets, tokenizer, model)
+
+
+def run_elastic_search(datasets: datasets,) -> DatasetDict:
+
+    # test question에 따라 문서를 불러온다
+    test_datasets = load_from_disk("/opt/ml/data_v2/test_dataset")
+
+    total = []
+
+    # wikipedia 문서를 쿼리마다 미리 불러온 csv 파일입니다
+    context_data = pd.read_csv("add_context_test_dataset.csv")
+
+    # 각 쿼리마다 10개의 문서를 모두 concat하여 context column에 저장합니다
+    for i in range(len(context_data)):
+        context = ""
+        for j in range(1, 11):
+            context += context_data[f"text{j}"].iloc[i]
+        tmp = {
+            "context": context,
+            "id": context_data["id"].iloc[i],
+            "question": test_datasets["validation"][i]["question"],
+        }
+        total.append(tmp)
+
+    df = pd.DataFrame(total)
+
+    f = Features(
+        {
+            "context": Value(dtype="string", id=None),
+            "id": Value(dtype="string", id=None),
+            "question": Value(dtype="string", id=None),
+        }
     )
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_args.tokenizer_name
-        if model_args.tokenizer_name
-        else model_args.model_name_or_path,
-        use_fast=True,
-    )
-    model = AutoModelForQuestionAnswering.from_pretrained(
-        model_args.model_name_or_path,
-        from_tf=bool(".ckpt" in model_args.model_name_or_path),
-        config=config,
-    )
 
-    # True일 경우 : run passage retrieval
-    if data_args.eval_retrieval:
-        datasets = run_sparse_retrieval(
-            tokenizer.tokenize,
-            datasets,
-            training_args,
-            data_args,
-        )
-
-    # eval or predict mrc model
-    if training_args.do_eval or training_args.do_predict:
-        run_mrc(data_args, training_args, model_args, datasets, tokenizer, model)
-
-
-def run_sparse_retrieval(
-    tokenize_fn: Callable[[str], List[str]],
-    datasets: DatasetDict,
-    training_args: TrainingArguments,
-    data_args: DataTrainingArguments,
-    data_path: str = "../data",
-    context_path: str = "wikipedia_documents.json",
-) -> DatasetDict:
-
-    # Query에 맞는 Passage들을 Retrieval 합니다.
-    retriever = SparseRetrieval(
-        tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
-    )
-    retriever.get_sparse_embedding()
-
-    if data_args.use_faiss:
-        retriever.build_faiss(num_clusters=data_args.num_clusters)
-        df = retriever.retrieve_faiss(
-            datasets["validation"], topk=data_args.top_k_retrieval
-        )
-    else:
-        df = retriever.retrieve(datasets["validation"], topk=data_args.top_k_retrieval)
-
-    # test data 에 대해선 정답이 없으므로 id question context 로만 데이터셋이 구성됩니다.
-    if training_args.do_predict:
-        f = Features(
-            {
-                "context": Value(dtype="string", id=None),
-                "id": Value(dtype="string", id=None),
-                "question": Value(dtype="string", id=None),
-            }
-        )
-
-    # train data 에 대해선 정답이 존재하므로 id question context answer 로 데이터셋이 구성됩니다.
-    elif training_args.do_eval:
-        f = Features(
-            {
-                "answers": Sequence(
-                    feature={
-                        "text": Value(dtype="string", id=None),
-                        "answer_start": Value(dtype="int32", id=None),
-                    },
-                    length=-1,
-                    id=None,
-                ),
-                "context": Value(dtype="string", id=None),
-                "id": Value(dtype="string", id=None),
-                "question": Value(dtype="string", id=None),
-            }
-        )
     datasets = DatasetDict({"validation": Dataset.from_pandas(df, features=f)})
     return datasets
 
@@ -198,7 +161,7 @@ def run_mrc(
             stride=data_args.doc_stride,
             return_overflowing_tokens=True,
             return_offsets_mapping=True,
-            #return_token_type_ids=False, # roberta모델을 사용할 경우 False, bert를 사용할 경우 True로 표기해야합니다.
+            return_token_type_ids=False,  # roberta모델을 사용할 경우 False, bert를 사용할 경우 True로 표기해야합니다.
             padding="max_length" if data_args.pad_to_max_length else False,
         )
 
@@ -243,6 +206,14 @@ def run_mrc(
         tokenizer, pad_to_multiple_of=8 if training_args.fp16 else None
     )
 
+    # 파일을 저장할 때 뒤에 모델명이 붙도록 하기 위해 prefix를 정의합니다
+    if "roberta-large" in model_args.model_name_or_path:
+        prefix = "roberta"
+    elif "bert-base" in model_args.model_name_or_path:
+        prefix = "bert"
+    elif "electra" in model_args.model_name_or_path:
+        prefix = "electra"
+
     # Post-processing:
     def post_processing_function(
         examples,
@@ -251,12 +222,14 @@ def run_mrc(
         training_args: TrainingArguments,
     ) -> EvalPrediction:
         # Post-processing: start logits과 end logits을 original context의 정답과 match시킵니다.
+        # prefix를 통해 prediction한 파일의 뒤에 _{model_name}이 붙도록 합니다
         predictions = postprocess_qa_predictions(
             examples=examples,
             features=features,
             predictions=predictions,
             max_answer_length=data_args.max_answer_length,
             output_dir=training_args.output_dir,
+            prefix=prefix,
         )
         # Metric을 구할 수 있도록 Format을 맞춰줍니다.
         formatted_predictions = [
@@ -306,13 +279,6 @@ def run_mrc(
         print(
             "No metric can be presented because there is no correct answer given. Job done!"
         )
-
-    if training_args.do_eval:
-        metrics = trainer.evaluate()
-        metrics["eval_samples"] = len(eval_dataset)
-
-        trainer.log_metrics("test", metrics)
-        trainer.save_metrics("test", metrics)
 
 
 if __name__ == "__main__":

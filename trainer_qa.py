@@ -23,10 +23,6 @@ from transformers.trainer_utils import PredictionOutput
 if is_datasets_available():
     import datasets
 
-if is_torch_tpu_available():
-    import torch_xla.core.xla_model as xm
-    import torch_xla.debug.metrics as met
-
 # Huggingface의 Trainer를 상속받아 QuestionAnswering을 위한 Trainer를 생성합니다.
 class QuestionAnsweringTrainer(Trainer):
     def __init__(self, *args, eval_examples=None, post_process_function=None, **kwargs):
@@ -66,18 +62,19 @@ class QuestionAnsweringTrainer(Trainer):
             )
             metrics = self.compute_metrics(eval_preds)
 
-            self.log(metrics)
+            # eval step마다 측정하기 위해 metric이름앞에 eval_이라는 prefix를 붙여야 합니다
+            new_metrics = dict(
+                eval_exact_match=metrics["exact_match"], eval_f1=metrics["f1"]
+            )
+
+            self.log(new_metrics)
         else:
             metrics = {}
 
-        if self.args.tpu_metrics_debug or self.args.debug:
-            # tpu-comment: PyTorch/XLA에 대한 Logging debug metrics (compile, execute times, ops, etc.)
-            xm.master_print(met.metrics_report())
-
         self.control = self.callback_handler.on_evaluate(
-            self.args, self.state, self.control, metrics
+            self.args, self.state, self.control, new_metrics
         )
-        return metrics
+        return new_metrics
 
     def predict(self, test_dataset, test_examples, ignore_keys=None):
         test_dataloader = self.get_test_dataloader(test_dataset)

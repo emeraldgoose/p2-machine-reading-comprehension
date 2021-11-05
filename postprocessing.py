@@ -1,9 +1,16 @@
+"""
+    함수 post_processing_function을 리턴하는 함수입니다.
+    train.py의 코드를 분리하기 위해 작성되었습니다.
+"""
+
 from utils_qa import postprocess_qa_predictions
 from transformers import EvalPrediction
 
 
-def postprocessor(data_args, datasets, column_names):
+def postprocessor(data_args, datasets):
+    column_names = datasets["validation"].column_names
     answer_column_name = "answers" if "answers" in column_names else column_names[2]
+
     # Post-processing:
     def post_processing_function(examples, features, predictions, training_args):
         # Post-processing: start logits과 end logits을 original context의 정답과 match시킵니다.
@@ -21,7 +28,7 @@ def postprocessor(data_args, datasets, column_names):
         if training_args.do_predict:
             return formatted_predictions
 
-        elif training_args.do_eval:
+        else:
             references = [
                 {"id": ex["id"], "answers": ex[answer_column_name]}
                 for ex in datasets["validation"]
