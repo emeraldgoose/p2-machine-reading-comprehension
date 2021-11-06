@@ -39,12 +39,12 @@ def main():
                 "filter": {
                     "my_stop_filter": {
                         "type": "stop",
-                        "stopwords_path": "my_stopwords.txt",  # /etc/elastic안에 txt파일이 존재해야 댑니다
+                        "stopwords_path": "my_stopwords.txt",
                     }
                 },
                 "tokenizer": {
                     "my_nori_tokenizer": {
-                        "type": "nori_tokenizer", # 노리 형태소 깔아야대는데 에러나면 맨위에 참고해서 깔기
+                        "type": "nori_tokenizer",
                         "user_dictionary_rules": titles
                     }
                 },
