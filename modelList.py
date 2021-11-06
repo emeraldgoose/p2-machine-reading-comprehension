@@ -27,7 +27,7 @@ def init(model_args):
         model = BertQA.from_pretrained(model_args.model_name_or_path, config=config)
     elif model_args.model_name_or_path == "klue/roberta-large":
         model = RobertaQA.from_pretrained(model_args.model_name_or_path, config=config)
-    elif model_args.model_name_or_path == 'conv'
+    elif model_args.model_name_or_path == 'ConvModel'
         model = ConvModel.from_pretrained('klue/roberta-large', config=config)
     elif model_args.model_name_or_path == "monologg/koelectra-base-v3-discriminator":
         model = ElectraQA.from_pretrained(model_args.model_name_or_path, config=config)
