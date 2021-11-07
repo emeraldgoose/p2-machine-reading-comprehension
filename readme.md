@@ -59,9 +59,7 @@ bash ./install/install_requirements.sh
 ### 저장소 구조
 
 ```bash
-./assets/                # readme 에 필요한 이미지 저장
 ./install/               # 요구사항 설치 파일 
-./data/                  # 전체 데이터. 아래 상세 설명
 ./data_preprocessing/.   # 데이터 전처리
 arguments.py             # 모델, 데이터셋 argument가 dataclass 의 형태로 저장
 trainer_qa.py            # MRC 모델 평가에 대한 trainer 제공
