@@ -13,6 +13,10 @@ def train_preprocessor(
     context_column_name,
     answer_column_name,
 ):
+    """
+        return
+            datasets = DatasetDict(input_ids, attention_mask, token_type_ids, start_positions, end_positions)
+    """
     # Train preprocessing / 전처리를 진행합니다.
     def prepare_train_features(examples):
         # truncation과 padding(length가 짧을때만)을 통해 toknization을 진행하며, stride를 이용하여 overflow를 유지합니다.
@@ -103,6 +107,10 @@ def eval_preprocessor(
     question_column_name,
     context_column_name,
 ):
+    """
+        return
+            datasets = DatasetDict(input_ids, attention_mask, token_type_ids, example_id, offset_mapping)
+    """
     # Validation preprocessing
     def prepare_validation_features(examples):
         # truncation과 padding(length가 짧을때만)을 통해 toknization을 진행하며, stride를 이용하여 overflow를 유지합니다.

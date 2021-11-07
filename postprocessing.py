@@ -8,6 +8,9 @@ from transformers import EvalPrediction
 
 
 def postprocessor(data_args, datasets):
+    """
+        model에서 예측된 start_logits와 end_logits를 받아 context에서 답변을 찾는 함수입니다.
+    """
     column_names = datasets["validation"].column_names
     answer_column_name = "answers" if "answers" in column_names else column_names[2]
 
