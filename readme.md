@@ -2,15 +2,11 @@
 
 ## ODQA란?
 
-![](https://i.imgur.com/YBIhbW6.png)
-
 **ODQA(Open Domain Question and Answering)**:
 
 　지문이 따로 주어지지 않고 사전에 구축되어있는 Knowledge resource 에서 질문에 대답할 수 있는 문서를 찾은 후, 해당 문서에서 질문에 대한 대답을 찾는 문제
 
-## 소개
-
-![](https://i.imgur.com/sOdxQ2G.png)
+## 구조
 
 본 조에서는 **Retriever-Reader Model**을 통해 ODQA 문제를 해결하고자 하였다.
 
@@ -52,7 +48,6 @@ bash ./install/install_requirements.sh
 ```
 
 
-
 ## 파일 구성
 
 
@@ -77,8 +72,6 @@ sweep.yaml               # wandb sweep 설정 파일
 ```
 
 ## 데이터 소개
-
-![](https://i.imgur.com/slKzAjd.png)
 
 MRC 데이터의 경우, HuggingFace에서 제공하는 `datasets` 라이브러리를 이용하여 접근이 가능합니다. 해당 directory를 dataset_name 으로 저장한 후, 아래의 코드를 활용하여 불러올 수 있습니다.
 
@@ -108,13 +101,7 @@ Retrieval 과정에서 사용하는 문서 집합(corpus)은 `./data/wikipedia_d
 
 ## 데이터 예시
 
-### Wikipedia에 "미국 상원"을 검색했을 때의 결과
-
-![](https://i.imgur.com/TFKMvEW.png)
-
 ### 실제 데이터셋의 형태
-
-![](https://i.imgur.com/aLTCmXQ.png)
 
 - `title` : 문서(context)의 제목
 - `context` : 문서의 내용
@@ -126,13 +113,15 @@ Retrieval 과정에서 사용하는 문서 집합(corpus)은 `./data/wikipedia_d
 
 ## 훈련, 평가, 추론
 
+### model
+roberta-large, bert-base, electra-base위에 MLP를 쌓아 QA 리더 모델을 구성했습니다. 각 레이어에서 나온 값들은 dropout(0.2)을 통과시키게 한 후 start logits, end logits를 반환하게 하여 주어진 context에서 답을 찾도록 했습니다. roberta와 conv1d를 사용해 인접한 토큰간의 관계를 볼 수 있도록 시도한 모델도 있습니다.  
+각 사용한 pretrained 모델은 klue/roberta-large, klue/bert-base, monologg/koelectra-base-v3-discriminator이고 각 QA 모델의 구조는 `model.py`에서 볼 수 있습니다.
+
 ### train
 
 data에 대한 argument 는 `arguments.py` 의 `DataTrainingArguments` 에서 확인 가능합니다. 
 
 만약 arguments 에 대한 세팅을 직접하고 싶다면 `arguments.py` 를 참고해주세요. 
-
-klue/roberta-large, klue/bert-base, monologg/koelectra-base-v3-discriminator모델을 사용하여 위에 MLP를 쌓거나 conv1d를 사용하여 QA 리더 모델을 구성했습니다. 각 QA모델 구조는 `model.py`에서 볼 수 있습니다.
 
 또한, wandb sweep이 세팅되어 있어 `sweep.yaml`와 아래 wandb 정보를 수정하시면 fine tuning이 가능하도록 작성되었습니다. 
 
