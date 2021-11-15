@@ -4,7 +4,7 @@
 
 **ODQA(Open Domain Question and Answering)**:
 
-　지문이 따로 주어지지 않고 사전에 구축되어있는 Knowledge resource 에서 질문에 대답할 수 있는 문서를 찾은 후, 해당 문서에서 질문에 대한 대답을 찾는 문제
+지문이 따로 주어지지 않고 사전에 구축되어있는 Knowledge resource 에서 질문에 대답할 수 있는 문서를 찾은 후, 해당 문서에서 질문에 대한 대답을 찾는 문제
 
 ## 구조
 
@@ -114,8 +114,14 @@ Retrieval 과정에서 사용하는 문서 집합(corpus)은 `./data/wikipedia_d
 ## 훈련, 평가, 추론
 
 ### model
-roberta-large, bert-base, electra-base위에 MLP를 쌓아 QA 리더 모델을 구성했습니다. 각 레이어에서 나온 값들은 dropout(0.2)을 통과시키게 한 후 start logits, end logits를 반환하게 하여 주어진 context에서 답을 찾도록 했습니다. roberta와 conv1d를 사용해 인접한 토큰간의 관계를 볼 수 있도록 시도한 모델도 있습니다.  
+roberta-large, bert-base, electra-base위에 MLP를 쌓아 QA 리더 모델을 구성했습니다.  
+
+각 레이어에서 나온 값들은 dropout(0.2)을 통과시키게 한 후 start logits, end logits를 반환하게 하여 주어진 context에서 답을 찾도록 했습니다.  
+
+roberta와 conv1d를 사용해 인접한 토큰간의 관계를 볼 수 있도록 시도한 모델도 있습니다.  
+
 각 사용한 pretrained 모델은 klue/roberta-large, klue/bert-base, monologg/koelectra-base-v3-discriminator이고 각 QA 모델의 구조는 `model.py`에서 볼 수 있습니다.
+
 
 ### train
 
