@@ -196,3 +196,6 @@ python ensemble.py
 |ElectraQA|57.08|.|.|
 |Roberta+Conv-1d|.|59.17|58.06|
 |Ensemble(RobertaQA + BertQA + ElectraQA)|.|58.75|58.61|
+
+## 회고
+- [https://emeraldgoose.github.io/contest/2021/11/15/mrc/](https://emeraldgoose.github.io/contest/2021/11/15/mrc/)
