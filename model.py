@@ -16,7 +16,8 @@
 """ huggingface를 참고하여 Roberta, Bert, Electra를 베이스로 하여 MLP를 쌓은 모델들을 정의한 코드입니다 """
 
 import torch
-from torch.nn import Linear, CrossEntropyLoss, Dropout, Conv1d, functional, GELU as F
+import torch.nn.functional as F
+from torch.nn import Linear, CrossEntropyLoss, Dropout, Conv1d, GELU
 
 from transformers import (
     RobertaModel,
@@ -26,6 +27,7 @@ from transformers import (
     ElectraModel,
     ElectraPreTrainedModel,
 )
+
 from transformers.modeling_outputs import QuestionAnsweringModelOutput
 
 
