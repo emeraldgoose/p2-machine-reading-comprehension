@@ -16,7 +16,7 @@
 """ huggingface를 참고하여 Roberta, Bert, Electra를 베이스로 하여 MLP를 쌓은 모델들을 정의한 코드입니다 """
 
 import torch
-from torch.nn import Linear, CrossEntropyLoss, Dropout, Conv1d, functional as F
+from torch.nn import Linear, CrossEntropyLoss, Dropout, Conv1d, functional, GELU as F
 
 from transformers import (
     RobertaModel,
@@ -42,6 +42,8 @@ class RobertaQA(RobertaPreTrainedModel):
         self.dense = Linear(self.hidden_size, config.num_labels)
 
         self.dropout = Dropout(0.2)
+        
+        self.gelu = GELU()
 
         self.init_weights()
 
@@ -57,9 +59,9 @@ class RobertaQA(RobertaPreTrainedModel):
 
         sequence_output = outputs[0]  # sequence = (batch, seq, hidden)
 
-        output = self.dropout(self.fc(sequence_output))  # output = (batch, seq, hidden)
+        output = self.dropout(self.gelu(self.fc(sequence_output)))  # output = (batch, seq, hidden)
 
-        output = self.dropout(self.fc2(output))  # output = (batch, seq, hidden)
+        output = self.dropout(self.gelu(self.fc2(output)))  # output = (batch, seq, hidden)
 
         logits = self.dense(output)  # logits = (batch, seq, 2)
 
@@ -104,6 +106,8 @@ class BertQA(BertPreTrainedModel):
         self.dense = Linear(self.hidden_size, config.num_labels)
 
         self.dropout = Dropout(0.2)
+        
+        self.gelu = GELU()
 
         self.init_weights()
 
@@ -124,9 +128,9 @@ class BertQA(BertPreTrainedModel):
 
         sequence_output = outputs[0]  # sequence = (batch, seq, hidden)
 
-        output = self.dropout(self.fc(sequence_output))  # output = (batch, seq, hidden)
+        output = self.dropout(self.gelu(self.fc(sequence_output)))  # output = (batch, seq, hidden)
 
-        output = self.dropout(self.fc2(output))  # output = (batch, seq, hidden)
+        output = self.dropout(self.gelu(self.fc2(output)))  # output = (batch, seq, hidden)
 
         logits = self.dense(output)  # logits = (batch, seq, 2)
 
@@ -171,6 +175,8 @@ class ElectraQA(ElectraPreTrainedModel):
         self.dense = Linear(self.hidden_size, config.num_labels)
 
         self.dropout = Dropout(0.2)
+        
+        self.gelu = GELU()
 
         self.init_weights()
 
@@ -189,9 +195,9 @@ class ElectraQA(ElectraPreTrainedModel):
 
         sequence_output = outputs[0]  # sequence = (batch, seq, hidden)
 
-        output = self.dropout(self.fc(sequence_output))  # output = (batch, seq, hidden)
+        output = self.dropout(self.gelu(self.fc(sequence_output)))  # output = (batch, seq, hidden)
 
-        output = self.dropout(self.fc2(output))  # output = (batch, seq, hidden)
+        output = self.dropout(self.gelu(self.fc2(output)))  # output = (batch, seq, hidden)
 
         logits = self.dense(output)  # logits = (batch, seq, 2)
 
